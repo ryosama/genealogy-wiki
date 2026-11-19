@@ -31,6 +31,7 @@ Ouvrir [Racines en local](http://127.0.0.1:8000). La démo crée 26 personnes fi
 - Les éditeurs modifient les liens en cliquant dessus ou en passant par la section « Relations ». Pour ajouter un lien, ils peuvent choisir les deux personnes dans le formulaire ou sélectionner les deux cases dans le graphique. Une année de fin signale une union terminée.
 - La fiche et l’arbre s’impriment séparément. Le menu de l’arbre propose la vue affichée, la branche ascendante intégrale, la branche descendante intégrale et les deux branches intégrales.
 - Les photos de fiche sont converties en WebP avec un grand côté de 2 000 pixels, orientation appliquée et métadonnées retirées. Les pièces PDF et JPEG sont téléchargeables. La limite est de 12 Mo par fichier.
+- Après l’envoi d’une photo, l’éditeur peut cadrer un médaillon à l’aide du cercle ou des curseurs. Le médaillon sert d’avatar dans l’arbre et dans la liste des personnes. Le cadrage reste modifiable depuis les photos de la fiche.
 - Les modifications sont datées et attribuées à leur éditeur. Le mainteneur peut supprimer une fiche ou fusionner des doublons. La fusion conserve les champs renseignés de la fiche principale et récupère les informations manquantes, les médias, les liens et l’historique de l’autre fiche.
 
 ![Arbre généalogique de démonstration](docs/screenshots/arbre.webp)

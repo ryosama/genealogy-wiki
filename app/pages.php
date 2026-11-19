@@ -21,6 +21,7 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
 
         case 'personne':
             $person = find_person($db, $id);
+            $person['portrait_id'] = (int) query($db, 'SELECT media_id FROM portraits WHERE person_id = ?', [$id])->fetchColumn();
             // Les listes utilisent les métadonnées. Le navigateur charge chaque fichier à son URL.
             $media = query($db, 'SELECT id,kind,mime,title FROM media WHERE person_id = ? ORDER BY id', [$id])->fetchAll();
             $photos = array_values(array_filter($media, static fn ($item) => $item['kind'] === 'photo'));
@@ -57,6 +58,12 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
                 }
             }
             return ['edit', $id ? 'Modifier la fiche' : 'Nouvelle personne', ['person' => $person, 'id' => $id]];
+
+        case 'medaillon':
+            guard($user);
+            $person = find_person($db, $id);
+            $editor = portrait_editor_data($db, $id, id_value($_GET['photo'] ?? null));
+            return ['portrait', $editor['saved'] ? 'Ajuster le médaillon' : 'Créer le médaillon', $editor + ['person' => $person]];
 
         case 'historique':
             guard($user);

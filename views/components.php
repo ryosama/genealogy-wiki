@@ -15,8 +15,10 @@ function avatar(array $person, ?int $photoId = null, string $class = ''): string
     // Une couleur stable permet de reconnaître les avatars sans photo d'une page à l'autre.
     $variants = ['moss', 'clay', 'sand', 'slate'];
     $variant = $variants[$person['id'] % count($variants)];
+    $image = !empty($person['portrait_id']) ? url('portrait', ['id' => $person['portrait_id']])
+        : ($photoId ? url('media', ['id' => $photoId]) : null);
     return '<span class="avatar avatar-' . $variant . ' ' . e($class) . '" aria-hidden="true">'
-        . ($photoId ? '<img src="' . e(url('media', ['id' => $photoId])) . '" alt="" loading="lazy">' : $label) . '</span>';
+        . ($image ? '<img src="' . e($image) . '" alt="" loading="lazy">' : $label) . '</span>';
 }
 
 function print_button(string $label): string

@@ -12,17 +12,22 @@ const PHOTO_FORMATS = [
 
 function convert_photo(string $source, string $format): string
 {
+    // Prendre la première image et corriger son orientation avant de la redimensionner.
+    return render_webp(["$format:$source" . '[0]', '-auto-orient', '-resize', '2000x2000']);
+}
+
+function render_webp(array $arguments): string
+{
     global $config;
     $target = tempnam($config['data_dir'], 'photo-');
     if (!$target) {
         throw new RuntimeException('Impossible de préparer le fichier de conversion.');
     }
     try {
-        // Borner les ressources de conversion et lancer la commande sans shell.
-        // Prendre la première image, corriger l'orientation, puis retirer les métadonnées.
+        // Les photos et les médaillons partagent les limites ImageMagick et la suppression des métadonnées.
+        // Les arguments sont transmis sans passer par un shell.
         $command = [$config['image_tool'], '-limit', 'thread', '2', '-limit', 'time', '25', '-limit', 'memory', '128MiB',
-            '-limit', 'map', '256MiB', '-limit', 'disk', '512MiB', "$format:$source" . '[0]',
-            '-auto-orient', '-resize', '2000x2000', '-strip', '-quality', '84', "WEBP:$target"];
+            '-limit', 'map', '256MiB', '-limit', 'disk', '512MiB', ...$arguments, '-strip', '-quality', '84', "WEBP:$target"];
         $process = proc_open($command, [['file', '/dev/null', 'r'], ['file', '/dev/null', 'w'], ['file', '/dev/null', 'w']], $pipes);
         if (!is_resource($process)) {
             throw new RuntimeException('ImageMagick est indisponible.');
@@ -43,7 +48,7 @@ function convert_photo(string $source, string $format): string
     }
 }
 
-function store_media(PDO $db, int $personId, string $kind, string $title, array $file, string $editor): void
+function store_media(PDO $db, int $personId, string $kind, string $title, array $file, string $editor): int
 {
     $error = $file['error'] ?? UPLOAD_ERR_NO_FILE;
     if (in_array($error, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
@@ -70,14 +75,15 @@ function store_media(PDO $db, int $personId, string $kind, string $title, array 
         $title = $kind === 'photo' ? 'Photo' : 'Document';
     }
     // Convertir avant de prendre le verrou, puis enregistrer le fichier et son historique ensemble.
-    write_transaction($db, static function (PDO $db) use ($personId, $kind, $title, $mime, $bytes, $editor): void {
+    return write_transaction($db, static function (PDO $db) use ($personId, $kind, $title, $mime, $bytes, $editor): int {
         $person = find_person($db, $personId);
-        insert_media($db, $personId, $kind, $title, $mime, $bytes);
+        $id = insert_media($db, $personId, $kind, $title, $mime, $bytes);
         record_change($db, $person, $editor, 'media_added', ['Fichier' => $title]);
+        return $id;
     });
 }
 
-function insert_media(PDO $db, int $personId, string $kind, string $title, string $mime, string $bytes): void
+function insert_media(PDO $db, int $personId, string $kind, string $title, string $mime, string $bytes): int
 {
     $statement = $db->prepare('INSERT INTO media (person_id,kind,title,mime,bytes) VALUES (?,?,?,?,?)');
     $statement->bindValue(1, $personId, PDO::PARAM_INT);
@@ -86,6 +92,7 @@ function insert_media(PDO $db, int $personId, string $kind, string $title, strin
     $statement->bindValue(4, $mime);
     $statement->bindValue(5, $bytes, PDO::PARAM_LOB);
     $statement->execute();
+    return (int) $db->lastInsertId();
 }
 
 function remove_media(PDO $db, int $personId, int $mediaId, string $editor): void
@@ -101,11 +108,17 @@ function remove_media(PDO $db, int $personId, int $mediaId, string $editor): voi
     });
 }
 
-function serve_media(PDO $db, int $id): never
+function serve_media(PDO $db, int $id, bool $portrait = false): never
 {
-    $file = query($db, 'SELECT mime,title,bytes FROM media WHERE id = ?', [$id])->fetch();
+    $file = $portrait
+        ? query($db, "SELECT 'image/webp' AS mime, 'Médaillon' AS title, bytes FROM portraits WHERE media_id = ?", [$id])->fetch()
+        : query($db, 'SELECT mime,title,bytes FROM media WHERE id = ?', [$id])->fetch();
     if (!$file) {
         throw new InputException('Ce fichier est introuvable.', 404);
+    }
+    if ($portrait) {
+        // Un nouveau cadrage de la même photo conserve l'URL du médaillon.
+        header('Cache-Control: no-cache');
     }
     $extension = match ($file['mime']) {
         'image/webp' => 'webp',

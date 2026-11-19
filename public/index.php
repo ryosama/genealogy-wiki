@@ -11,6 +11,7 @@ require PROJECT_ROOT . '/app/people.php';
 require PROJECT_ROOT . '/app/relatives.php';
 require PROJECT_ROOT . '/app/accounts.php';
 require PROJECT_ROOT . '/app/media.php';
+require PROJECT_ROOT . '/app/portraits.php';
 require PROJECT_ROOT . '/app/actions.php';
 require PROJECT_ROOT . '/app/pages.php';
 
@@ -32,8 +33,8 @@ $common = ['route' => $route, 'user' => null, 'notice' => null, 'error' => null]
 try {
     $db = db();
     // Les fichiers publics ont leur propre réponse HTTP, sans gabarit ni session de visiteur.
-    if ($route === 'media' && in_array($_SERVER['REQUEST_METHOD'], ['GET', 'HEAD'], true)) {
-        serve_media($db, $id);
+    if (in_array($route, ['media', 'portrait'], true) && in_array($_SERVER['REQUEST_METHOD'], ['GET', 'HEAD'], true)) {
+        serve_media($db, $id, $route === 'portrait');
     }
     session_save_path(private_directory($config['data_dir'] . '/sessions'));
     if (!session_start()) {

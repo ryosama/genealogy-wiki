@@ -6,7 +6,7 @@ define('PROJECT_ROOT', dirname(__DIR__));
 // Taille maximale d'un fichier, en octets (12 Mio).
 define('MEDIA_LIMIT', 12 * 1024 * 1024);
 // Dernière version SQLite prise en charge par le code courant.
-define('SCHEMA_VERSION', 2);
+define('SCHEMA_VERSION', 3);
 
 // Les valeurs de config/local.php remplacent les réglages destinés au développement.
 $config = array_replace([
@@ -152,6 +152,9 @@ function db(): PDO
             }
             if ($version < 2) {
                 $db->exec(file_get_contents(PROJECT_ROOT . '/app/migrations/002_people_and_siblings.sql'));
+            }
+            if ($version < 3) {
+                $db->exec(file_get_contents(PROJECT_ROOT . '/app/migrations/003_photo_portraits.sql'));
             }
         });
     }

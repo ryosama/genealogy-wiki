@@ -262,6 +262,7 @@ h3 { font-size: 1.23rem; }
 .photo-grid figure { position: relative; margin: 0; }
 .photo-grid img { width: 100%; height: 140px; object-fit: cover; border-radius: 8px; background: #ede9dd; }
 .photo-grid figcaption { color: var(--muted); font-size: .84rem; margin-top: 4px; overflow-wrap: anywhere; }
+.photo-portrait-link { margin-top: 5px; font-size: .82rem; }
 .photo-grid .remove-media { position: absolute; right: 4px; top: 4px; background: var(--white); border-radius: 7px; }
 .files { display: grid; gap: 7px; }
 .file-row { display: flex; align-items: center; gap: 5px; border: 1px solid #e6e8e0; border-radius: 7px; background: #f7f8f2; }
@@ -296,6 +297,65 @@ h3 { font-size: 1.23rem; }
 .editor-toolbar button { border: 1px solid transparent; border-radius: 6px; padding: .32rem .58rem; background: transparent; color: var(--forest); font-size: .86rem; }
 .editor-toolbar button:hover { background: var(--white); border-color: var(--line); }
 .rich-input { min-height: 130px; border: 1px solid #d4d7cc; border-radius: 0 0 8px 8px; background: white; padding: 13px; }
+
+.portrait-page { max-width: 970px; }
+.portrait-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 220px); }
+.portrait-photo-pane { min-width: 0; padding: clamp(12px, 3vw, 24px); }
+.portrait-photo-pane p { color: var(--muted); font-size: .93rem; }
+.portrait-stage {
+    position: relative;
+    width: fit-content;
+    max-width: 100%;
+    margin: auto;
+    overflow: hidden;
+    border-radius: 9px;
+    background: #edece4;
+}
+.portrait-stage > img { width: auto; height: auto; max-height: min(64vh, 620px); user-select: none; }
+/* L'ombre assombrit la partie écartée. Le bord et la poignée restent au-dessus de la photo. */
+.portrait-selection {
+    position: absolute;
+    border: 2px solid white;
+    border-radius: 50%;
+    box-shadow: 0 0 0 9999px #151c16a6, inset 0 0 0 1px #17221c7d;
+    cursor: move;
+    touch-action: none;
+}
+.portrait-resize {
+    position: absolute;
+    right: 14.6%;
+    bottom: 14.6%;
+    transform: translate(50%, 50%);
+    width: 22px;
+    height: 22px;
+    border: 2px solid white;
+    border-radius: 50%;
+    background: var(--forest);
+    box-shadow: 0 1px 4px #142216aa;
+    cursor: nwse-resize;
+}
+.portrait-controls { padding: 20px; border-left: 1px solid var(--line); background: #f4f5ee; border-radius: 0 12px 12px 0; }
+.portrait-controls h2 { font-size: 1.35rem; text-align: center; }
+.portrait-preview {
+    position: relative;
+    width: 100px;
+    aspect-ratio: 1;
+    margin: 12px auto 22px;
+    overflow: hidden;
+    border-radius: 50%;
+    background: var(--pale);
+    box-shadow: 0 0 0 2px var(--white), 0 0 0 3px #b9c7b9;
+}
+.portrait-preview img { position: absolute; max-width: none; }
+.portrait-controls label { gap: 0; }
+.portrait-controls input[type="range"] { min-height: 34px; padding: 0; border: 0; background: transparent; accent-color: var(--forest); }
+.portrait-actions { margin-top: 16px; }
+
+@media (max-width: 630px) {
+    .portrait-workspace { grid-template-columns: 1fr; }
+    .portrait-controls { border-left: 0; border-top: 1px solid var(--line); border-radius: 0 0 12px 12px; }
+    .portrait-stage > img { max-height: 52vh; }
+}
 
 .graph-panel { position: relative; }
 .graph-heading { padding: 18px 20px 13px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
@@ -354,6 +414,7 @@ h3 { font-size: 1.23rem; }
 .family-svg .node-avatar { fill: var(--node-avatar, #e7ece2); }
 .family-svg .node-initials { fill: var(--node-ink, #455d47); font: 700 11px var(--serif); }
 .family-svg .node-sex-icon { color: var(--node-ink); }
+.family-svg .node-portrait { pointer-events: none; }
 .family-svg .node-name { fill: #293529; font: 650 14px var(--sans); }
 .family-svg .node-dates { fill: #576653; font: 12px var(--sans); }
 .family-svg .tree-node-centre .node-box { fill: var(--node-centre, #dce7d7); stroke: var(--node-emphasis, #527150); stroke-width: 1.7px; }
@@ -535,7 +596,7 @@ dialog h2 { margin: 0 34px 16px 0; }
     body { background: white; color: #161b16; font-size: 11pt; line-height: 1.34; }
     body > main { min-height: 0; }
     .site-header, .site-footer, .skip-link, .notices, .back-link, .profile-actions,
-    .profile-admin, .relation-edit, .panel-action, .upload-box, .remove-media, .graph-pair, .graph-context-menu, dialog { display: none !important; }
+    .profile-admin, .relation-edit, .panel-action, .upload-box, .remove-media, .photo-portrait-link, .graph-pair, .graph-context-menu, dialog { display: none !important; }
     .container { width: 100%; max-width: none; }
     .page-space { padding: 0; }
     .profile-heading, .content-panel, .photo-grid figure, .file-row { break-inside: avoid; }

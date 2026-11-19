@@ -16,6 +16,7 @@ const ACTION_LABELS = [
     'merged' => 'Fiches fusionnées', 'merged_away' => 'Fiche fusionnée',
     'linked' => 'Relation ajoutée', 'relinked' => 'Relation modifiée', 'unlinked' => 'Relation supprimée',
     'media_added' => 'Fichier ajouté', 'media_removed' => 'Fichier supprimé',
+    'portrait_saved' => 'Médaillon enregistré',
 ];
 
 function find_person(PDO $db, int $id): array
@@ -29,7 +30,7 @@ function find_person(PDO $db, int $id): array
 
 function photo_subquery(string $personAlias): string
 {
-    // La première photo ajoutée sert d'avatar. Seul son identifiant est chargé ici.
+    // La première photo est l'avatar de repli lorsqu'aucun médaillon n'a été choisi.
     return "(SELECT id FROM media WHERE kind = 'photo' AND person_id = $personAlias.id ORDER BY id LIMIT 1)";
 }
 
@@ -63,7 +64,8 @@ function search_people(PDO $db, array $filters, int $page): array
     $perPage = 24;
     $page = min($page, max(1, (int) ceil($total / $perPage)));
     $offset = ($page - 1) * $perPage;
-    $statement = 'SELECT p.*, ' . photo_subquery('p') . ' AS photo_id FROM people p' . $filter
+    $statement = 'SELECT p.*, m.media_id AS portrait_id, ' . photo_subquery('p') . ' AS photo_id'
+        . ' FROM people p LEFT JOIN portraits m ON m.person_id = p.id' . $filter
         . " ORDER BY p.last_name COLLATE NOCASE, p.first_name COLLATE NOCASE, p.id LIMIT $perPage OFFSET $offset";
     return ['people' => query($db, $statement, $params)->fetchAll(), 'total' => $total,
         'page' => $page, 'pages' => (int) ceil($total / $perPage)];
@@ -89,8 +91,8 @@ function stats(PDO $db): array
 function recent_people(PDO $db): array
 {
     // Ne garder que la dernière entrée d'historique de chaque fiche encore présente.
-    return $db->query('SELECT p.*, h.editor_name, h.action, h.created_at, ' . photo_subquery('p') . ' AS photo_id'
-        . ' FROM history h JOIN people p ON p.id = h.person_id'
+    return $db->query('SELECT p.*, h.editor_name, h.action, h.created_at, m.media_id AS portrait_id, ' . photo_subquery('p') . ' AS photo_id'
+        . ' FROM history h JOIN people p ON p.id = h.person_id LEFT JOIN portraits m ON m.person_id = p.id'
         . ' WHERE h.id = (SELECT MAX(id) FROM history WHERE person_id = p.id)'
         . ' ORDER BY h.id DESC LIMIT 6')->fetchAll();
 }
@@ -287,11 +289,15 @@ function default_center(PDO $db): int
 function graph_data(PDO $db): array
 {
     // Le dessin reçoit les cartes et leurs liens. Les textes longs et les médias restent sur les fiches.
-    $people = $db->query('SELECT id, first_name, last_name, sex, birth_date, birth_year, death_date, death_year FROM people ORDER BY id')->fetchAll();
+    $people = $db->query(<<<'SQL'
+        SELECT p.id, p.first_name, p.last_name, p.sex, p.birth_date, p.birth_year, p.death_date, p.death_year, m.media_id AS portrait_id
+        FROM people p LEFT JOIN portraits m ON m.person_id = p.id ORDER BY p.id
+        SQL)->fetchAll();
     foreach ($people as &$person) {
         $person = ['id' => $person['id'], 'name' => full_name($person), 'dates' => lifespan($person), 'year' => $person['birth_year'],
             'initials' => initials($person), 'search' => normalized_name(full_name($person)),
-            'sex' => $person['sex'], 'lastName' => $person['last_name']];
+            'sex' => $person['sex'], 'lastName' => $person['last_name'],
+            'portrait' => $person['portrait_id'] ? url('portrait', ['id' => $person['portrait_id']]) : null];
     }
     unset($person);
 
@@ -363,6 +369,8 @@ function merge_people(PDO $db, int $keepId, int $removeId, string $editor): void
         }
         // Réattribuer les fichiers et les modifications avant la suppression en cascade de l'ancienne fiche.
         query($db, 'UPDATE media SET person_id = ? WHERE person_id = ?', [$keepId, $removeId]);
+        // Récupérer le médaillon du doublon si la fiche conservée n'en utilise pas déjà un.
+        query($db, 'UPDATE OR IGNORE portraits SET person_id = ? WHERE person_id = ?', [$keepId, $removeId]);
         query($db, 'UPDATE history SET person_id = ? WHERE person_id = ?', [$keepId, $removeId]);
         record_change($db, $keep, $editor, 'merged', ['Fiche fusionnée' => full_name($remove)] + $remove);
         query($db, 'DELETE FROM people WHERE id = ?', [$removeId]);

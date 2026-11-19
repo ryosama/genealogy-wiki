@@ -83,9 +83,19 @@ function process_action(PDO $db, string $action, int $personId, ?array $user): n
             go(input($_GET, 'view') === 'arbre' ? 'arbre' : 'personne', ['id' => $personId]);
 
         case 'upload':
-            store_media($db, $personId, input($_POST, 'kind'), short_text($_POST, 'title', 180),
+            $kind = input($_POST, 'kind');
+            $mediaId = store_media($db, $personId, $kind, short_text($_POST, 'title', 180),
                 $_FILES['file'] ?? [], $editor);
+            if ($kind === 'photo') {
+                flash('La photo a été ajoutée.');
+                go('medaillon', ['id' => $personId, 'photo' => $mediaId]);
+            }
             flash('Le fichier a été ajouté.');
+            go('personne', ['id' => $personId]);
+
+        case 'save-portrait':
+            save_portrait($db, $personId, id_value($_GET['photo'] ?? null), $_POST, $editor);
+            flash('Le médaillon a été enregistré.');
             go('personne', ['id' => $personId]);
 
         case 'delete-media':

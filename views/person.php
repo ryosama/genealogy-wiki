@@ -109,7 +109,12 @@
                                     <img src="<?= e(url('media', ['id' => $photo['id']])) ?>" alt="<?= e($photo['title']) ?>" loading="lazy">
                                 </a>
                                 <figcaption><?= e($photo['title']) ?></figcaption>
-                                <?php if ($user): view('remove-media', ['personId' => $person['id'], 'mediaId' => $photo['id']]); endif ?>
+                                <?php if ($user): ?>
+                                    <a class="text-link photo-portrait-link" href="<?= e(url('medaillon', ['id' => $person['id'], 'photo' => $photo['id']])) ?>">
+                                        <?= icon('edit', 15) ?> <?= $person['portrait_id'] === $photo['id'] ? 'Ajuster le médaillon' : 'Créer un médaillon' ?>
+                                    </a>
+                                    <?php view('remove-media', ['personId' => $person['id'], 'mediaId' => $photo['id']]); ?>
+                                <?php endif ?>
                             </figure>
                         <?php endforeach ?>
                     </div>

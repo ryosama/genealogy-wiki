@@ -51,6 +51,7 @@ function drawGraph(family, model, interactive, editable) {
     const definitions = svg('defs');
     const arrowId = 'filiation-arrow-' + (++graphSequence);
     const labelId = arrowId + '-label';
+    const portraitClip = new Map();
     const arrow = svg('marker', {id: arrowId, viewBox: '0 0 9 9', refX: 8, refY: 4.5,
         markerUnits: 'userSpaceOnUse', markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'});
     arrow.append(svg('path', {d: 'M1 1 L8 4.5 L1 8', class: 'edge-arrow'}));
@@ -58,6 +59,14 @@ function drawGraph(family, model, interactive, editable) {
     const labelArea = svg('clipPath', {id: labelId});
     labelArea.append(svg('rect', {x: 46, y: 0, width: CARD.width - 52, height: CARD.height}));
     definitions.append(arrow, labelArea);
+    // Le médaillon reprend l'emplacement des initiales. Avec un symbole de sexe, il remonte de 8 unités.
+    for (const centerY of [23, 31]) {
+        const id = arrowId + '-portrait-' + centerY;
+        const clip = svg('clipPath', {id});
+        clip.append(svg('circle', {cx: 25, cy: centerY, r: 14}));
+        definitions.append(clip);
+        portraitClip.set(centerY, 'url(#' + id + ')');
+    }
     result.append(definitions);
 
     // Dessiner d'abord les traits pour que les cartes passent devant leurs extrémités.
@@ -91,6 +100,7 @@ function drawGraph(family, model, interactive, editable) {
     for (const [id, position] of model.positions) {
         const person = family.people.get(id);
         const sex = person.sex;
+        const avatarY = sex ? 23 : 31;
         const name = [person.name, SEX_LABELS[sex], person.dates].filter(Boolean).join(' · ');
         const classes = ['tree-node', id === family.center ? 'tree-node-centre' : '', sex ? 'tree-node-' + sex : ''];
         const attributes = {transform: 'translate(' + position.x + ' ' + position.y + ')',
@@ -108,8 +118,11 @@ function drawGraph(family, model, interactive, editable) {
         node.append(
             svgText('title', name),
             svg('rect', {width: CARD.width, height: CARD.height, rx: 10, class: 'node-box'}),
-            svg('circle', {cx: 25, cy: sex ? 23 : 31, r: 14, class: 'node-avatar'}),
-            svgText('text', person.initials, {x: 25, y: sex ? 27 : 35, 'text-anchor': 'middle', class: 'node-initials'}),
+            svg('circle', {cx: 25, cy: avatarY, r: 14, class: 'node-avatar'}),
+            person.portrait
+                ? svg('image', {href: person.portrait, x: 11, y: avatarY - 14, width: 28, height: 28,
+                    'clip-path': portraitClip.get(avatarY), class: 'node-portrait', 'aria-hidden': 'true'})
+                : svgText('text', person.initials, {x: 25, y: avatarY + 4, 'text-anchor': 'middle', class: 'node-initials'}),
             label
         );
         if (sex) {

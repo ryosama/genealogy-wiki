@@ -80,12 +80,7 @@
                                 <?php foreach ($groups[$key] as $relative): ?>
                                     <li>
                                         <a class="relative-person" href="<?= e(url('personne', ['id' => $relative['id']])) ?>">
-                                            <?php if ($relative['sex']): ?>
-                                                <span class="relative-sex relative-sex-<?= e($relative['sex']) ?>" role="img"
-                                                    aria-label="<?= e(SEX_LABELS[$relative['sex']]) ?>" title="<?= e(SEX_LABELS[$relative['sex']]) ?>">
-                                                    <?= icon($relative['sex'], 15) ?>
-                                                </span>
-                                            <?php endif ?>
+                                            <?= sex_icon($relative['sex']) ?>
                                             <span><?= e(full_name($relative)) ?></span>
                                         </a>
                                         <?php if (isset($relative['kind'])): ?>
@@ -113,7 +108,7 @@
                     <div class="photo-grid">
                         <?php foreach ($photos as $photo): ?>
                             <figure>
-                                <a href="<?= e(url('media', ['id' => $photo['id']])) ?>">
+                                <a class="photo-original" href="<?= e(url('media', ['id' => $photo['id']])) ?>">
                                     <img src="<?= e(url('media', ['id' => $photo['id']])) ?>" alt="<?= e($photo['title']) ?>" loading="lazy">
                                 </a>
                                 <figcaption><?= e($photo['title']) ?></figcaption>

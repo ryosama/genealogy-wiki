@@ -9,6 +9,17 @@ function icon(string $name, int $size = 20): string
         . '<use href="' . e($symbol) . '" x="8%" y="8%" width="84%" height="84%"/></svg>';
 }
 
+// Le libellé expose le sens du symbole aux lecteurs d'écran.
+function sex_icon(?string $sex): string
+{
+    if ($sex === null) {
+        return '';
+    }
+    $label = e(SEX_LABELS[$sex]);
+    return '<span class="sex-icon sex-icon-' . e($sex) . '" role="img" aria-label="' . $label
+        . '" title="' . $label . '">' . icon($sex, 15) . '</span>';
+}
+
 function avatar(array $person, ?int $photoId = null, string $class = ''): string
 {
     $label = e(initials($person));

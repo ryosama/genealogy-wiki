@@ -185,7 +185,7 @@ h3 { font-size: 1.23rem; }
 .activity-list, .explore-card { border: 1px solid var(--line); background: var(--white); border-radius: 13px; overflow: hidden; box-shadow: var(--shadow); }
 .activity-row { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(154px, auto) 18px; gap: 12px; align-items: center; min-height: 68px; padding: 10px 15px; }
 .activity-row + .activity-row { border-top: 1px solid #ebebe3; }
-.activity-row:hover, .person-card:hover { background: #f2f4eb; }
+.activity-row:hover { background: #f2f4eb; }
 .activity-row:focus-visible { outline-offset: -3px; }
 .activity-person, .activity-meta { display: grid; min-width: 0; }
 .activity-person strong { font-size: .96rem; font-weight: 670; overflow-wrap: anywhere; }
@@ -226,7 +226,19 @@ h3 { font-size: 1.23rem; }
 .search-panel { padding: 15px; margin-bottom: 24px; }
 .directory-count { margin-top: 9px; }
 .directory-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.person-card { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; border: 1px solid var(--line); border-radius: 10px; padding: 13px; background: var(--white); }
+.person-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--person-outline, var(--line));
+    border-radius: 10px;
+    padding: 13px;
+    background: var(--person-fill, var(--white));
+}
+.person-card:hover { background: var(--person-avatar, #f2f4eb); }
+.directory-avatar { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 61px; }
+.directory-avatar .avatar { --avatar-bg: var(--person-avatar, #e7ece2); --avatar-ink: var(--person-ink, #455d47); }
 .person-card strong, .person-card small { display: block; overflow-wrap: anywhere; }
 .person-card small { color: var(--muted); font-size: .84rem; }
 .person-card > svg { color: #658068; }
@@ -259,16 +271,18 @@ h3 { font-size: 1.23rem; }
 .relation-groups li { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 8px; min-height: 26px; }
 .relative-person { display: inline-flex; align-items: center; gap: .35rem; min-width: 0; }
 .relative-person > span:last-child { overflow-wrap: anywhere; }
-.relative-sex { display: inline-flex; flex: none; }
-.relative-sex-female { color: var(--sex-female); }
-.relative-sex-male { color: var(--sex-male); }
+.sex-icon { display: inline-flex; flex: none; }
+.sex-icon-female { color: var(--sex-female); }
+.sex-icon-male { color: var(--sex-male); }
 .relation-groups a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .relation-groups small { color: #526050; font-size: .81rem; }
 .relation-edit { align-self: center; width: 28px; height: 28px; margin-left: auto; }
 .panel-action { margin-top: 14px; }
 .photo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(126px, 100%), 1fr)); gap: 10px; }
 .photo-grid figure { position: relative; margin: 0; }
-.photo-grid img { width: 100%; height: 140px; object-fit: cover; border-radius: 8px; background: #ede9dd; }
+.photo-original { display: block; }
+/* La galerie garde le rapport largeur/hauteur de la source. Seuls les avatars utilisent un masque. */
+.photo-grid img { width: 100%; height: auto; border-radius: 8px; background: #ede9dd; }
 .photo-grid figcaption { color: var(--muted); font-size: .84rem; margin-top: 4px; overflow-wrap: anywhere; }
 .photo-portrait-link { margin-top: 5px; font-size: .82rem; }
 .photo-grid .remove-media { position: absolute; right: 4px; top: 4px; background: var(--white); border-radius: 7px; }
@@ -401,32 +415,32 @@ h3 { font-size: 1.23rem; }
 .graph-surface { min-width: max-content; cursor: grab; }
 .family-svg { display: block; margin-inline: auto; overflow: hidden; user-select: none; }
 .graph-surface.is-dragging, .is-dragging .tree-node { cursor: grabbing; }
-/* Les cartes sans sexe renseigné utilisent la palette neutre. Les autres gardent leur couleur au centre. */
-.family-svg .tree-node-female {
-    --node-fill: #fff2f6;
-    --node-outline: #bd879f;
-    --node-avatar: #f4dbe6;
-    --node-ink: var(--sex-female);
+/* Même palette dans l'arbre et dans l'annuaire. La personne centrale a une teinte plus soutenue. */
+.tree-node-female, .person-card-female {
+    --person-fill: #fff2f6;
+    --person-outline: #bd879f;
+    --person-avatar: #f4dbe6;
+    --person-ink: var(--sex-female);
     --node-centre: #f7dfeb;
     --node-emphasis: #965573;
 }
-.family-svg .tree-node-male {
-    --node-fill: #eef5fc;
-    --node-outline: #86a3bf;
-    --node-avatar: #d9e9f8;
-    --node-ink: var(--sex-male);
+.tree-node-male, .person-card-male {
+    --person-fill: #eef5fc;
+    --person-outline: #86a3bf;
+    --person-avatar: #d9e9f8;
+    --person-ink: var(--sex-male);
     --node-centre: #dcecfb;
     --node-emphasis: #4f7495;
 }
-.family-svg .node-box { fill: var(--node-fill, #fffefa); stroke: var(--node-outline, #a6b2a1); stroke-width: 1.2px; }
-.family-svg .node-avatar { fill: var(--node-avatar, #e7ece2); }
-.family-svg .node-initials { fill: var(--node-ink, #455d47); font: 700 11px var(--serif); }
-.family-svg .node-sex-icon { color: var(--node-ink); }
+.family-svg .node-box { fill: var(--person-fill, #fffefa); stroke: var(--person-outline, #a6b2a1); stroke-width: 1.2px; }
+.family-svg .node-avatar { fill: var(--person-avatar, #e7ece2); }
+.family-svg .node-initials { fill: var(--person-ink, #455d47); font: 700 11px var(--serif); }
+.family-svg .node-sex-icon { color: var(--person-ink); }
 .family-svg .node-portrait { pointer-events: none; }
 .family-svg .node-name { fill: #293529; font: 650 14px var(--sans); }
 .family-svg .node-dates { fill: #576653; font: 12px var(--sans); }
 .family-svg .tree-node-centre .node-box { fill: var(--node-centre, #dce7d7); stroke: var(--node-emphasis, #527150); stroke-width: 1.7px; }
-.family-svg .tree-node-centre .node-avatar { fill: var(--node-avatar, #bcd1b7); }
+.family-svg .tree-node-centre .node-avatar { fill: var(--person-avatar, #bcd1b7); }
 .family-svg .tree-node-centre .node-name { font-weight: 750; }
 /* Le doigt peut déplacer une carte, tandis que le fond laisse défiler la zone sur mobile. */
 .family-svg a.tree-node { touch-action: none; cursor: pointer; outline: none; -webkit-touch-callout: none; }

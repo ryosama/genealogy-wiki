@@ -64,8 +64,7 @@ function search_people(PDO $db, array $filters, int $page): array
     $perPage = 24;
     $page = min($page, max(1, (int) ceil($total / $perPage)));
     $offset = ($page - 1) * $perPage;
-    $statement = 'SELECT p.*, m.media_id AS portrait_id, ' . photo_subquery('p') . ' AS photo_id'
-        . ' FROM people p LEFT JOIN portraits m ON m.person_id = p.id' . $filter
+    $statement = 'SELECT p.*, m.media_id AS portrait_id FROM people p LEFT JOIN portraits m ON m.person_id = p.id' . $filter
         . " ORDER BY p.last_name COLLATE NOCASE, p.first_name COLLATE NOCASE, p.id LIMIT $perPage OFFSET $offset";
     return ['people' => query($db, $statement, $params)->fetchAll(), 'total' => $total,
         'page' => $page, 'pages' => (int) ceil($total / $perPage)];

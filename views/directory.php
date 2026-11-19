@@ -13,8 +13,12 @@
     <?php if ($people): ?>
         <div class="directory-grid">
             <?php foreach ($people as $item): ?>
-                <a class="person-card" href="<?= e(url('personne', ['id' => $item['id']])) ?>">
-                    <?= avatar($item, $item['photo_id']) ?>
+                <a class="person-card<?= $item['sex'] ? ' person-card-' . e($item['sex']) : '' ?>"
+                    href="<?= e(url('personne', ['id' => $item['id']])) ?>">
+                    <span class="directory-avatar">
+                        <?= avatar($item) ?>
+                        <?= sex_icon($item['sex']) ?>
+                    </span>
                     <span><strong><?= e(full_name($item)) ?></strong><small><?= e(lifespan($item)) ?></small></span>
                     <?= icon('right', 18) ?>
                 </a>

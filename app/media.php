@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+// Associe les types MIME détectés dans le fichier aux décodeurs ImageMagick autorisés.
+// AVIF, HEIC et HEIF passent ici par le même décodeur.
 const PHOTO_FORMATS = [
     'image/jpeg' => 'JPEG', 'image/png' => 'PNG', 'image/webp' => 'WEBP',
     'image/avif' => 'HEIC', 'image/heic' => 'HEIC', 'image/heif' => 'HEIC',
@@ -16,7 +18,8 @@ function convert_photo(string $source, string $format): string
         throw new RuntimeException('Impossible de préparer le fichier de conversion.');
     }
     try {
-        // Select the first frame and strip EXIF, ICC and other embedded metadata.
+        // Borner les ressources de conversion et lancer la commande sans shell.
+        // Prendre la première image, corriger l'orientation, puis retirer les métadonnées.
         $command = [$config['image_tool'], '-limit', 'thread', '2', '-limit', 'time', '25', '-limit', 'memory', '128MiB',
             '-limit', 'map', '256MiB', '-limit', 'disk', '512MiB', "$format:$source" . '[0]',
             '-auto-orient', '-resize', '2000x2000', '-strip', '-quality', '84', "WEBP:$target"];
@@ -29,11 +32,13 @@ function convert_photo(string $source, string $format): string
             throw new RuntimeException('La commande ImageMagick configurée est introuvable.');
         }
         $bytes = file_get_contents($target);
+        // Les octets 8 à 11 de l'en-tête RIFF doivent identifier un fichier WebP.
         if ($status !== 0 || strlen($bytes) < 12 || substr($bytes, 8, 4) !== 'WEBP' || strlen($bytes) > MEDIA_LIMIT) {
             throw new InputException('La photo est illisible, ou sa conversion dépasse les limites autorisées.');
         }
         return $bytes;
     } finally {
+        // Le fichier de travail disparaît aussi en cas d'échec de la conversion.
         unlink($target);
     }
 }
@@ -51,6 +56,7 @@ function store_media(PDO $db, int $personId, string $kind, string $title, array 
     if ($file['size'] < 1 || $file['size'] > MEDIA_LIMIT) {
         throw new InputException('La taille maximale est de 12 Mo par fichier.');
     }
+    // PHP détecte le type à partir du contenu du fichier envoyé.
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($source);
     if ($kind === 'photo' && isset(PHOTO_FORMATS[$mime])) {
         $bytes = convert_photo($source, PHOTO_FORMATS[$mime]);
@@ -63,6 +69,7 @@ function store_media(PDO $db, int $personId, string $kind, string $title, array 
     if ($title === '') {
         $title = $kind === 'photo' ? 'Photo' : 'Document';
     }
+    // Convertir avant de prendre le verrou, puis enregistrer le fichier et son historique ensemble.
     write_transaction($db, static function (PDO $db) use ($personId, $kind, $title, $mime, $bytes, $editor): void {
         $person = find_person($db, $personId);
         insert_media($db, $personId, $kind, $title, $mime, $bytes);
@@ -107,11 +114,13 @@ function serve_media(PDO $db, int $id): never
         default => throw new RuntimeException('Type de fichier inattendu.'),
     };
     $download = 'fichier.' . $extension;
+    // Fournir un nom simple de repli et un nom UTF-8 pour les titres accentués.
     $title = rawurlencode(str_replace(["\r", "\n"], '', $file['title']) . '.' . $extension);
     $disposition = ($extension === 'pdf' || isset($_GET['download'])) ? 'attachment' : 'inline';
     header('Content-Type: ' . $file['mime']);
     header("Content-Disposition: $disposition; filename=\"$download\"; filename*=UTF-8''$title");
     header('Content-Length: ' . strlen($file['bytes']));
+    // Une requête HEAD renvoie les mêmes métadonnées, sans envoyer le fichier.
     if ($_SERVER['REQUEST_METHOD'] !== 'HEAD') {
         echo $file['bytes'];
     }

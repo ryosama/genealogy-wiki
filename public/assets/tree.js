@@ -1,6 +1,8 @@
 import {CARD, FamilyGraph, isParent, linkShapes} from './tree-layout.js';
 
+// Les éléments graphiques créés par JavaScript appartiennent à l'espace de noms SVG.
 const SVG_NS = 'http://www.w3.org/2000/svg';
+// Correspondance avec relations.kind pour le titre et le nom accessible des tracés.
 const KINSHIP = {
     biological: 'Filiation biologique',
     adoptive: 'Filiation adoptive',
@@ -20,6 +22,7 @@ const svgText = (tag, value, attributes) => {
 const personUrl = id => './?view=personne&id=' + id;
 const treeUrl = id => './?view=arbre&id=' + id;
 
+// Le dessin affiché et celui de l'impression coexistent. Leurs définitions SVG ont des ID distincts.
 let graphSequence = 0;
 
 function shorten(text, limit) {
@@ -35,6 +38,7 @@ function linkLabel(family, link) {
 }
 
 function drawGraph(family, model, interactive, editable) {
+    // Utiliser le même modèle pour l'écran et le papier. Sur papier, les cartes sont de simples groupes SVG.
     const result = svg('svg', {viewBox: '0 0 ' + model.width + ' ' + model.height,
         width: model.width, height: model.height, class: 'family-svg',
         role: interactive ? 'group' : 'img', 'aria-label': 'Arbre familial'});
@@ -44,11 +48,13 @@ function drawGraph(family, model, interactive, editable) {
     const arrow = svg('marker', {id: arrowId, viewBox: '0 0 9 9', refX: 8, refY: 4.5,
         markerUnits: 'userSpaceOnUse', markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'});
     arrow.append(svg('path', {d: 'M1 1 L8 4.5 L1 8', class: 'edge-arrow'}));
+    // Le texte visible reste dans la carte. Le nom complet est fourni au survol et au lecteur d'écran.
     const labelArea = svg('clipPath', {id: labelId});
     labelArea.append(svg('rect', {x: 46, y: 0, width: CARD.width - 52, height: CARD.height}));
     definitions.append(arrow, labelArea);
     result.append(definitions);
 
+    // Dessiner d'abord les traits pour que les cartes passent devant leurs extrémités.
     const edges = svg('g', {class: 'tree-edges'});
     for (const shape of linkShapes(model)) {
         const group = svg('g', {class: 'tree-edge edge-' + shape.kind + (shape.ended ? ' ended-edge' : ''),
@@ -62,6 +68,7 @@ function drawGraph(family, model, interactive, editable) {
         }
         group.append(visible);
         if (interactive) {
+            // La copie transparente agrandit la cible du pointeur sans épaissir le trait au repos.
             group.append(svg('path', {d: shape.d, class: 'edge-hit'}));
             if (editable) {
                 group.setAttribute('tabindex', '0');
@@ -99,6 +106,7 @@ function drawGraph(family, model, interactive, editable) {
 }
 
 function updatePaths(drawing, model) {
+    // Le déplacement met à jour les deux tracés d'un lien sans remplacer les éléments sous le pointeur.
     const paths = new Map(linkShapes(model).map(shape => [shape.key, shape.d]));
     for (const group of drawing.querySelectorAll('[data-edge]')) {
         for (const path of group.querySelectorAll('path')) {
@@ -115,17 +123,20 @@ function normalizeSearch(text) {
 class TreeUI {
     constructor(panel) {
         this.panel = panel;
+        // La page fournit les données initiales dans un bloc JSON préparé par PHP.
         const data = JSON.parse(panel.querySelector('[data-graph-data]').textContent);
         this.center = Number(panel.dataset.center);
         this.family = new FamilyGraph(data, this.center);
         this.editable = panel.dataset.editable === 'true';
         this.links = new Map(data.relations.map(link => [link.id, link]));
         this.people = data.people.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+        // Profondeur initiale de chaque branche et bornes calculées à partir des liens connus.
         this.levels = {ancestors: 2, descendants: 2};
         this.maximum = {
             ancestors: [...this.family.ancestors.values()].reduce((max, level) => Math.max(max, level), 0),
             descendants: [...this.family.descendants.values()].reduce((max, level) => Math.max(max, level), 0),
         };
+        // Le zoom et les positions manuelles appartiennent à cette vue et restent en mémoire dans le navigateur.
         this.zoom = 1;
         this.fixed = new Map();
         this.viewport = panel.querySelector('.graph-viewport');
@@ -165,12 +176,14 @@ class TreeUI {
 
     fitZoom() {
         const width = this.viewport.clientWidth;
+        // Sur un petit écran, laisser défiler l'arbre pour préserver une taille de lecture suffisante.
         this.zoom = width < 600 ? 0.82 : Math.max(0.62, Math.min(1, width / this.model.width));
         this.resize();
     }
 
     scrollToCenter() {
         const focus = this.model.positions.get(this.center);
+        // Convertir les coordonnées de la carte en pixels affichés avant de centrer le défilement.
         this.viewport.scrollLeft = (focus.x + CARD.width / 2) * this.zoom - this.viewport.clientWidth / 2;
         this.viewport.scrollTop = (focus.y + CARD.height / 2) * this.zoom - this.viewport.clientHeight / 2;
     }
@@ -184,6 +197,7 @@ class TreeUI {
                 this.fixed.clear();
                 this.draw();
                 this.scrollToCenter();
+                // Montrer la nouvelle génération au bord supérieur ou inférieur de la zone.
                 const top = Math.max(0, this.drawing.getBoundingClientRect().height - this.viewport.clientHeight);
                 this.viewport.scrollTop = direction === 'ancestors' ? 0 : top;
             });
@@ -199,6 +213,7 @@ class TreeUI {
                     this.scrollToCenter();
                     return;
                 }
+                // Retrouver le centre de la zone en unités SVG pour le conserver pendant le zoom.
                 const centerX = (this.viewport.scrollLeft + this.viewport.clientWidth / 2) / this.zoom;
                 const centerY = (this.viewport.scrollTop + this.viewport.clientHeight / 2) / this.zoom;
                 this.zoom = Math.max(0.45, Math.min(1.75, Math.round((this.zoom + (mode === 'in' ? 0.15 : -0.15)) * 100) / 100));
@@ -217,6 +232,7 @@ class TreeUI {
             });
         });
         window.addEventListener('beforeprint', () => {
+            // L'impression lancée depuis le navigateur imprime la vue courante sur la page Arbre.
             if (document.body.classList.contains('tree-page') && !this.printSurface.firstChild) {
                 this.preparePrint('view');
             }
@@ -228,6 +244,8 @@ class TreeUI {
     }
 
     preparePrint(mode) {
+        // Les branches complètes sont recalculées sans limite de générations ni déplacements manuels.
+        // La vue affichée reprend la disposition courante, indépendamment du zoom et du défilement.
         const ranges = {
             ancestors: [Infinity, 0], descendants: [0, Infinity], both: [Infinity, Infinity],
         };
@@ -240,6 +258,8 @@ class TreeUI {
     }
 
     bindPointer() {
+        // gesture mémorise le pointeur, la carte éventuelle et les coordonnées au début du geste.
+        // wasDragged permet ensuite de distinguer le déplacement d'un clic sur cette carte.
         let gesture;
         let wasDragged = false;
         this.surface.addEventListener('pointerdown', event => {
@@ -268,12 +288,14 @@ class TreeUI {
             if (!wasDragged && Math.hypot(dx, dy) < 5) {
                 return;
             }
+            // Au-delà du seuil de cinq pixels, continuer à recevoir les événements hors de la carte.
             if (!wasDragged) {
                 (gesture.card ?? this.surface).setPointerCapture(event.pointerId);
                 wasDragged = true;
                 this.surface.classList.add('is-dragging');
             }
             if (gesture.card) {
+                // Ajouter le défilement au déplacement en pixels, puis revenir en unités SVG.
                 const x = Math.max(5, Math.min(this.model.width - CARD.width - 5,
                     gesture.position.x + (dx + this.viewport.scrollLeft - gesture.left) / this.zoom));
                 const y = Math.max(26, Math.min(this.model.height - CARD.height - 5,
@@ -297,6 +319,7 @@ class TreeUI {
         window.addEventListener('pointercancel', finish);
         this.surface.addEventListener('dragstart', event => event.preventDefault());
         this.surface.addEventListener('click', event => {
+            // Bloquer la navigation après un glisser-déposer tout en préservant le clic simulé au clavier.
             if (wasDragged && event.detail !== 0) {
                 event.preventDefault();
                 wasDragged = false;
@@ -328,6 +351,7 @@ class TreeUI {
         const dialog = this.panel.querySelector('[data-centre-dialog]');
         const input = dialog.querySelector('[data-center-search]');
         const list = dialog.querySelector('[data-center-results]');
+        // Chercher chaque mot dans l'index des noms fourni par le serveur et borner la liste de suggestions.
         const listMatches = () => {
             const terms = normalizeSearch(input.value).split(' ').filter(Boolean);
             const matches = this.people.filter(person => terms.every(term => person.search.includes(term)));
@@ -364,6 +388,7 @@ class TreeUI {
         this.linkChooser = this.panel.querySelector('[data-link-chooser]');
         this.relationForm = this.relationDialog.querySelector('[data-relation-form]');
         const fields = this.relationForm.elements;
+        // Les deux extrémités d'un lien utilisent la même liste de personnes.
         const options = document.createDocumentFragment();
         const empty = document.createElement('option');
         empty.textContent = 'Choisir une personne';
@@ -404,11 +429,13 @@ class TreeUI {
             }
         });
         if (attempted) {
+            // Après une erreur côté serveur, rouvrir l'éditeur avec les valeurs renvoyées par PHP.
             this.openRelation(attempted);
         }
     }
 
     chooseLink(segment) {
+        // Un trait commun représente plusieurs liens SQLite. Demander lequel éditer avant d'ouvrir le formulaire.
         const candidates = segment.dataset.links.split(',').map(id => this.links.get(Number(id)));
         if (candidates.length === 1) {
             this.openRelation(candidates[0]);
@@ -434,6 +461,7 @@ class TreeUI {
 
     startPair() {
         this.stopPair();
+        // null désactive la sélection. Un tableau vide attend la première carte.
         this.pair = [];
         const status = this.panel.querySelector('[data-pair-status]');
         status.querySelector('p').textContent = 'Sélectionnez la première personne dans le graphique.';
@@ -458,6 +486,7 @@ class TreeUI {
             node.classList.add('is-selected');
             status.textContent = 'Sélectionnez la seconde personne.';
         } else if (id !== this.pair[0]) {
+            // Pour une nouvelle filiation, la première carte sélectionnée devient le parent proposé.
             const [first] = this.pair;
             this.stopPair();
             this.openRelation({a_id: first, b_id: id});
@@ -465,6 +494,7 @@ class TreeUI {
     }
 
     relationLabels() {
+        // L'ordre a un sens pour une filiation. L'année de fin concerne uniquement les unions.
         const parent = isParent({kind: this.relationForm.elements.kind.value});
         this.relationForm.querySelector('[data-a-label]').textContent = parent ? 'Parent' : 'Première personne';
         this.relationForm.querySelector('[data-b-label]').textContent = parent ? 'Enfant' : 'Seconde personne';
@@ -474,6 +504,7 @@ class TreeUI {
 
     openRelation(relation = {}) {
         this.stopPair();
+        // Sans identifiant de relation, le formulaire crée un lien et propose la personne centrale.
         const fields = this.relationForm.elements;
         fields.relation_id.value = relation.id || '';
         fields.a_id.value = relation.a_id || this.center;

@@ -53,6 +53,7 @@
         <p class="graph-help">Déplacez une case pour réorganiser la vue temporairement.</p>
     <?php endif ?>
     <noscript><p class="empty">Active JavaScript pour afficher le graphique. Les relations restent accessibles dans les fiches.</p></noscript>
+    <?php // tree.js lit ce JSON et restaure le formulaire si le serveur a refusé la modification d'un lien. ?>
     <script type="application/json" data-graph-data><?= json_data($graph + ['attempted' => $attemptedRelation]) ?></script>
 
     <dialog data-centre-dialog>

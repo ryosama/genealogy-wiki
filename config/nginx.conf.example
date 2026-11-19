@@ -2,14 +2,17 @@ server {
     listen 80;
     server_name genealogy.example.test;
 
+    # La racine HTTP se limite aux fichiers web. La base et la configuration restent au-dessus.
     root /var/www/genealogy-wiki/public;
     index index.php;
+    # Le corps multipart inclut le fichier de 12 Mio et les champs du formulaire.
     client_max_body_size 16m;
 
     location / {
         try_files $uri $uri/ =404;
     }
 
+    # Ce seul point d'entrée PHP est transmis à PHP-FPM.
     location = /index.php {
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root/index.php;

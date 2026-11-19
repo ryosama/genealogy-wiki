@@ -8,6 +8,7 @@
     <title><?= e($title) ?> · Racines</title>
     <link rel="stylesheet" href="<?= e(asset('style.css')) ?>">
     <script src="<?= e(asset('site.js')) ?>" defer></script>
+    <?php // Le module de dessin n'est chargé que si la page fournit les données d'un arbre. ?>
     <?php if (isset($graph)): ?><script src="<?= e(asset('tree.js')) ?>" type="module"></script><?php endif ?>
 </head>
 <body class="<?= $route === 'arbre' ? 'tree-page' : '' ?>">
@@ -19,9 +20,13 @@
             <span>Racines</span>
         </a>
         <nav class="primary-nav" aria-label="Navigation principale">
-            <?php foreach (['' => 'Accueil', 'personnes' => 'Personnes', 'arbre' => 'Arbre'] as $section => $label):
+            <?php // La fiche, l'édition et l'historique font partie de la rubrique Personnes. ?>
+            <?php foreach (['' => ['Accueil', 'home'], 'personnes' => ['Personnes', 'people'], 'arbre' => ['Arbre', 'tree']]
+                as $section => [$label, $pictogram]):
                 $active = $route === $section || ($section === 'personnes' && in_array($route, ['personne', 'edition', 'historique'], true)); ?>
-                <a href="<?= e(url($section)) ?>" <?= $active ? 'aria-current="page"' : '' ?>><?= e($label) ?></a>
+                <a href="<?= e(url($section)) ?>" <?= $active ? 'aria-current="page"' : '' ?>>
+                    <?= icon($pictogram, 15) ?> <?= e($label) ?>
+                </a>
             <?php endforeach ?>
         </nav>
         <?php if ($user): ?>

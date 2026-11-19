@@ -4,6 +4,7 @@ declare(strict_types=1);
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
+// Le point d'entrée HTTP charge le socle, les règles métier et les contrôleurs de pages.
 require dirname(__DIR__) . '/app/bootstrap.php';
 require PROJECT_ROOT . '/app/content.php';
 require PROJECT_ROOT . '/app/people.php';
@@ -16,7 +17,7 @@ header("Content-Security-Policy: default-src 'self'; base-uri 'none'; form-actio
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
 
-// App URL and PHP's HTTPS flag cover direct TLS and a configured reverse proxy.
+// L'URL configurée couvre aussi le cas où un proxy termine la connexion HTTPS.
 $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || str_starts_with($config['app_url'], 'https://');
 session_set_cookie_params(['httponly' => true, 'secure' => $secure, 'samesite' => 'Lax']);
 session_name('genealogy_session');
@@ -24,10 +25,12 @@ ini_set('session.use_strict_mode', '1');
 
 $route = input($_GET, 'view');
 $id = id_value($_GET['id'] ?? null);
+// Données de mise en page partagées, initialisées pour pouvoir afficher aussi les erreurs.
 $common = ['route' => $route, 'user' => null, 'notice' => null, 'error' => null];
 
 try {
     $db = db();
+    // Les fichiers publics ont leur propre réponse HTTP, sans gabarit ni session de visiteur.
     if ($route === 'media' && in_array($_SERVER['REQUEST_METHOD'], ['GET', 'HEAD'], true)) {
         serve_media($db, $id);
     }
@@ -49,6 +52,7 @@ try {
             if ($httpStatus === 403 || $httpStatus === 404) {
                 throw $error;
             }
+            // Une erreur de saisie réaffiche le formulaire et laisse l'utilisateur le corriger.
             http_response_code($httpStatus);
             $common['error'] = $error->getMessage();
         }

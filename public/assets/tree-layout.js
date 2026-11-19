@@ -1,4 +1,10 @@
-export const CARD = {width: 194, height: 62, gap: 28, rowGap: 112, marginX: 28, marginY: 30};
+// Dimensions en unités SVG, avant zoom. Les espaces réservent des couloirs aux traits des liens.
+export const CARD = {
+    width: 194, height: 62,
+    gap: 28, rowGap: 112,
+    marginX: 28, marginY: 30,
+};
+// Seules les filiations imposent un ordre entre générations.
 export const isParent = link => link.kind === 'biological' || link.kind === 'adoptive';
 
 function addIndex(index, id, value) {
@@ -13,6 +19,7 @@ export class FamilyGraph {
         this.people = new Map(data.people.map(person => [person.id, person]));
         this.links = data.relations;
         this.center = center;
+        // Chaque index associe un identifiant aux proches dans un sens donné. Les unions sont symétriques.
         this.parents = new Map();
         this.children = new Map();
         this.partners = new Map();
@@ -30,6 +37,7 @@ export class FamilyGraph {
     }
 
     trace(index) {
+        // Parcours en largeur à partir du centre. La première visite donne la distance minimale.
         const distance = new Map([[this.center, 0]]);
         const queue = [this.center];
         for (const id of queue) {
@@ -43,7 +51,7 @@ export class FamilyGraph {
         return distance;
     }
 
-    // Calculate ranks in topological order so a shared ancestor stays above every visible child.
+    // Le rang 0 est celui de la personne centrale. Les ascendants ont un rang négatif.
     ranks(above, below) {
         const ranks = new Map([[this.center, 0]]);
         for (const [distance, limit, direction] of [[this.ancestors, above, -1], [this.descendants, below, 1]]) {
@@ -53,6 +61,8 @@ export class FamilyGraph {
                 }
             }
         }
+        // Après filtrage par distance, calculer l'ordre topologique des filiations encore visibles.
+        // inDegree compte les liens parentaux qu'il reste à visiter pour chaque carte.
         const inDegree = new Map([...ranks.keys()].map(id => [id, 0]));
         for (const id of ranks.keys()) {
             for (const child of this.children.get(id) ?? []) {
@@ -61,6 +71,7 @@ export class FamilyGraph {
                 }
             }
         }
+        // Partir des cartes sans parent visible, puis ajouter un enfant quand tous ses parents ont été traités.
         const order = [...ranks.keys()].filter(id => inDegree.get(id) === 0);
         for (const id of order) {
             for (const child of this.children.get(id) ?? []) {
@@ -77,6 +88,7 @@ export class FamilyGraph {
                 }
             }
         }
+        // Le sens inverse écarte les ancêtres partagés vers le haut quand plusieurs chemins les relient au centre.
         for (const child of order.reverse()) {
             for (const parent of this.parents.get(child) ?? []) {
                 if (ranks.get(parent) < 0 && ranks.get(child) <= 0) {
@@ -85,7 +97,8 @@ export class FamilyGraph {
             }
         }
 
-        // Place partners and co-parents alongside the nearest direct member of the branch.
+        // Les conjoints et autres parents rejoignent le rang du proche direct déjà visible le plus près du centre.
+        // La liste direct est figée avant les ajouts pour éviter d'étendre de proche en proche toutes les unions.
         const direct = [...ranks.keys()].sort((a, b) => Math.abs(ranks.get(a)) - Math.abs(ranks.get(b)));
         for (const id of direct) {
             const rank = ranks.get(id);
@@ -112,6 +125,7 @@ export class FamilyGraph {
         const ranks = this.ranks(above, below);
         const firstRank = Math.min(0, ...ranks.values());
         const lastRank = Math.max(0, ...ranks.values());
+        // Décaler les rangs par firstRank pour les indexer dans le tableau des rangées.
         const rows = Array.from({length: lastRank - firstRank + 1}, () => []);
         for (const [id, rank] of ranks) {
             rows[rank - firstRank].push(id);
@@ -127,6 +141,7 @@ export class FamilyGraph {
         }
         this.orderRows(rows, ranks, firstRank, links, neighborIndex);
 
+        // Séparer l'ordre des cartes de leur placement en pixels, puis recaler l'origine en haut à gauche.
         const horizontal = this.placeRows(rows, ranks, firstRank);
         const left = [...horizontal.values()].reduce((min, x) => Math.min(min, x), Infinity);
         const right = [...horizontal.values()].reduce((max, x) => Math.max(max, x), -Infinity);
@@ -139,9 +154,11 @@ export class FamilyGraph {
                     y: CARD.marginY + index * (CARD.height + CARD.rowGap),
                     rank: ranks.get(id),
                 };
+                // fixed contient uniquement les déplacements manuels dans la vue courante.
                 positions.set(id, {...coordinates, ...fixed.get(id)});
             });
         }
+        // Réserver une marge à droite aux filiations qui enjambent plusieurs rangées.
         const outerRoutes = links.filter(link => isParent(link) && ranks.get(link.b_id) > ranks.get(link.a_id) + 1).length;
         return {
             positions,
@@ -158,7 +175,7 @@ export class FamilyGraph {
         const centerColumn = middle.indexOf(this.center);
         const locations = new Map(middle.map((id, column) => [id, (column - centerColumn) * step]));
 
-        // Align each group with its relatives in the row closer to the focus.
+        // Partir du centre et placer les cartes près de leurs proches dans la rangée déjà positionnée.
         for (const [direction, relatives] of [[-1, this.children], [1, this.parents]]) {
             for (let index = centerIndex + direction; index >= 0 && index < rows.length; index += direction) {
                 const row = rows[index];
@@ -171,6 +188,7 @@ export class FamilyGraph {
                         anchors.set(id, near.reduce((sum, relative) => sum + locations.get(relative), 0) / near.length);
                     }
                 }
+                // Les proches directs pèsent davantage que les conjoints et le centrage de repli.
                 const preferences = row.map((id, column) => {
                     if (anchors.has(id)) {
                         return {x: anchors.get(id), weight: 3};
@@ -188,6 +206,7 @@ export class FamilyGraph {
     }
 
     orderRows(rows, ranks, firstRank, links, neighborIndex) {
+        // adjacent regroupe les filiations entre deux rangées consécutives, par rangée de départ.
         const adjacent = new Map();
         for (const link of links) {
             const a = ranks.get(link.a_id) - firstRank;
@@ -200,7 +219,8 @@ export class FamilyGraph {
         const indexRow = row => row.forEach((id, position) => locations.set(id, position - (row.length - 1) / 2));
         rows.forEach(indexRow);
 
-        // Alternate between parents and children when ordering each generation.
+        // Alterner huit balayages vers le bas et vers le haut. À chaque passage, l'ordre suit
+        // la position moyenne des proches du côté déjà visité. Garder la meilleure disposition trouvée.
         let best = rows.map(row => [...row]);
         let bestScore = Infinity;
         for (let sweep = 0; sweep < 8; sweep += 1) {
@@ -223,7 +243,8 @@ export class FamilyGraph {
                 row.sort((a, b) => weights.get(a) - weights.get(b) || locations.get(a) - locations.get(b));
                 indexRow(row);
             }
-            // Adjacent swaps undo crossings when the average position only approximates the best order.
+            // Tester les échanges voisins que le tri par moyenne a pu manquer. Sur une rangée
+            // de plus de 80 cartes, on garde le tri pour limiter le coût du calcul interactif.
             for (const [index, row] of rows.entries()) {
                 if (row.length > 80) {
                     continue;
@@ -252,6 +273,7 @@ export class FamilyGraph {
 
     rowScore(index, adjacent, positions, row, ranks) {
         let score = crossings(adjacent.get(index - 1) ?? [], positions) + crossings(adjacent.get(index) ?? [], positions);
+        // Éloigner deux conjoints coûte moins cher qu'ajouter un croisement de filiation.
         for (const id of row) {
             for (const partner of this.partners.get(id) ?? []) {
                 if (partner > id && ranks.get(partner) === ranks.get(id)) {
@@ -263,7 +285,8 @@ export class FamilyGraph {
     }
 }
 
-// Pool neighboring positions that would overlap, preserving the minimum spacing.
+// Soustraire l'espacement de chaque colonne permet de ne comparer que l'ordre des valeurs.
+// Si deux positions s'inversent, les fusionner en une moyenne pondérée, puis rétablir l'espacement.
 function separateColumns(preferences, spacing) {
     const blocks = [];
     for (const [index, {x, weight}] of preferences.entries()) {
@@ -290,7 +313,8 @@ function separateColumns(preferences, spacing) {
     return positions;
 }
 
-// Count inversions with a Fenwick tree so broad generations do not need pairwise comparisons.
+// Deux liens se croisent si leurs deux extrémités apparaissent dans des ordres inverses.
+// Un arbre de Fenwick cumule les arrivées par colonne et évite de comparer toutes les paires.
 function crossings(edges, positions) {
     const targets = [...new Set(edges.map(([, b]) => positions.get(b)))].sort((a, b) => a - b);
     const index = new Map(targets.map((position, offset) => [position, offset + 1]));
@@ -300,6 +324,7 @@ function crossings(edges, positions) {
     let seen = 0;
     let count = 0;
     for (const [, position] of sorted) {
+        // Compter les arrivées précédentes au-delà de cette colonne, puis enregistrer l'arrivée courante.
         let atOrBefore = 0;
         for (let i = position; i > 0; i -= i & -i) {
             atOrBefore += counts[i];
@@ -314,6 +339,7 @@ function crossings(edges, positions) {
 }
 
 function rankConnections(links, positions, endpoint, other) {
+    // Répartir les attaches en suivant l'ordre de leurs destinations, de part et d'autre du milieu de la carte.
     const groups = new Map();
     for (const link of links) {
         addIndex(groups, link[endpoint], link);
@@ -330,6 +356,8 @@ function rankConnections(links, positions, endpoint, other) {
 }
 
 function familySegments(model) {
+    // Les enfants qui ont les mêmes parents visibles, tous sur la rangée au-dessus, partagent un trait.
+    // Chaque partie du trait garde les liens qu'elle représente pour ouvrir le bon formulaire.
     const byChild = new Map();
     for (const link of model.links.filter(isParent)) {
         addIndex(byChild, link.b_id, link);
@@ -363,6 +391,8 @@ function familySegments(model) {
 }
 
 function allocateTracks(groups) {
+    // Dans chaque espace entre rangées, deux tronçons peuvent partager une piste si leurs
+    // intervalles horizontaux sont disjoints. Placer les tronçons les plus longs en premier.
     const tracksByGap = new Map();
     const fractions = new Map();
     for (const group of groups) {
@@ -381,6 +411,7 @@ function allocateTracks(groups) {
             fractions.set(key, lane);
         }
         for (const {key} of items) {
+            // Garder de la place de part et d'autre du faisceau pour les départs et les pointes de flèche.
             fractions.set(key, 0.29 + 0.37 * (fractions.get(key) + 1) / (tracks.length + 1));
         }
     }
@@ -390,7 +421,8 @@ function allocateTracks(groups) {
 export function linkShapes(model) {
     const {positions, links, width} = model;
     const {direct, shared} = familySegments(model);
-    // Give each distinct branch its own attachment point on a card.
+    // Un départ de trait commun ne doit occuper qu'une attache sur la carte. L'identifiant
+    // négatif distingue cette attache synthétique des liens individuels utilisés dans le calcul.
     const stems = [...shared.values()].flatMap(unit => [...unit.stems.values()].map(([link]) => ({
         ...link, id: -link.id,
     })));
@@ -407,6 +439,7 @@ export function linkShapes(model) {
             a, b, rank: a.rank, left: Math.min(x1, x2), right: Math.max(x1, x2),
         };
     });
+    // Les limites verticales du trait commun dépendent du parent le plus bas et de l'enfant le plus haut.
     const grouped = [...shared.values()].map(unit => {
         const origins = [...unit.stems.entries()].map(([id, edges]) => ({
             id, edges, x: centerX(positions.get(id)) + exits.get(-edges[0].id), y: positions.get(id).y + CARD.height,
@@ -427,6 +460,7 @@ export function linkShapes(model) {
         const {key, a, b, x1, x2, start, end, link} = item;
         let d;
         if (b.rank > a.rank + 1) {
+            // Déporter le trait sur le côté pour contourner les cartes des générations intermédiaires.
             const outerX = width - 19 - outer * 7;
             outer += 1;
             d = 'M' + x1 + ' ' + start + ' V' + (start + 27) + ' H' + outerX + ' V' + (end - 31) + ' H' + x2 + ' V' + end;
@@ -434,11 +468,13 @@ export function linkShapes(model) {
             const bend = start + (end - start) * fractions.get(key);
             d = 'M' + x1 + ' ' + start + ' V' + bend + ' H' + x2 + ' V' + end;
         } else {
+            // Après un glisser-déposer, le trajet peut devoir contourner une carte remontée dans l'arbre.
             const beside = Math.max(a.x, b.x) + CARD.width + 9;
             d = 'M' + x1 + ' ' + start + ' V' + (start + 14) + ' H' + beside + ' V' + (end - 22) + ' H' + x2 + ' V' + end;
         }
         shapes.push({key, d, kind: link.kind, arrow: true, links: [link]});
     }
+    // Un tronçon est en pointillés si tous les liens qu'il représente sont des adoptions.
     const kindOf = edges => edges.every(link => link.kind === 'adoptive') ? 'adoptive' : 'biological';
     for (const {key, left, right, origins, targets, start, end} of grouped) {
         const y = end > start + 14 ? start + (end - start) * fractions.get(key) : start + 14;
@@ -454,6 +490,7 @@ export function linkShapes(model) {
         }
     }
     const unions = links.filter(link => !isParent(link));
+    // Réserver une attache à chaque extrémité, car les identifiants des conjoints sont triés en base.
     const unionPorts = rankConnections(unions.flatMap(link => [
         link, {...link, id: -link.id, a_id: link.b_id, b_id: link.a_id},
     ]), positions, 'a_id', 'b_id');
@@ -462,6 +499,7 @@ export function linkShapes(model) {
         const b = positions.get(link.b_id);
         let d;
         const distance = Math.abs(a.x - b.x);
+        // Relier les voisins par les côtés. Un lien plus long passe au-dessus des cartes.
         if (a.y === b.y && distance >= CARD.width && distance <= CARD.width + CARD.gap + 1) {
             const y = a.y + CARD.height / 2 + (link.kind === 'marriage' ? -2 : 2);
             d = 'M' + (Math.min(a.x, b.x) + CARD.width) + ' ' + y + ' H' + Math.max(a.x, b.x);

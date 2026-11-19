@@ -1,5 +1,6 @@
 'use strict';
 
+// Les fiches utilisent l'impression native. L'arbre prépare son propre SVG dans tree.js.
 document.querySelectorAll('[data-print]').forEach(button => {
     button.addEventListener('click', () => window.print());
 });
@@ -13,6 +14,7 @@ document.querySelectorAll('form[data-confirm]').forEach(form => {
 });
 
 document.querySelectorAll('[data-rich-editor]').forEach(editor => {
+    // La zone visuelle n'est pas un champ de formulaire. Le textarea sert aussi de repli sans JavaScript.
     const box = editor.querySelector('[contenteditable]');
     const source = editor.querySelector('textarea');
     const toolbar = editor.querySelector('.editor-toolbar');
@@ -22,11 +24,13 @@ document.querySelectorAll('[data-rich-editor]').forEach(editor => {
     box.hidden = false;
     box.addEventListener('input', sync);
     box.addEventListener('paste', event => {
+        // Garder le texte collé. PHP nettoie ensuite le HTML envoyé par l'éditeur.
         event.preventDefault();
         document.execCommand('insertText', false, event.clipboardData.getData('text/plain'));
         sync();
     });
     toolbar.querySelectorAll('button').forEach(button => {
+        // Éviter que le clic dans la barre d'outils fasse perdre la sélection à mettre en forme.
         button.addEventListener('mousedown', event => event.preventDefault());
         button.addEventListener('click', () => {
             box.focus();

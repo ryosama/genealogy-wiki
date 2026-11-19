@@ -62,6 +62,8 @@ Les données d’exécution, la configuration locale, les archives d’origine e
 - `views/` contient les gabarits HTML.
 - `bin/console.php` initialise la base et crée le compte du mainteneur.
 
+Les icônes de l’interface sont une sélection d’icônes SVG de Font Awesome Free 7.3.1 par Fonticons, Inc., distribuées sous licence CC BY 4.0. Les tracés d’origine sont regroupés dans `public/assets/fontawesome.svg` et servis avec le site. [Font Awesome Free](https://fontawesome.com/license/free), [licence CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
 ![Accueil de Racines sur smartphone](docs/screenshots/mobile.webp)
 
 <details>

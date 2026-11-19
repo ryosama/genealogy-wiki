@@ -31,6 +31,7 @@
                         <div><dt>Lieu de vie</dt><dd><?= e($person['residence']) ?></dd></div>
                     <?php endif ?>
                 </dl>
+                <?php // Comme les faits notables, la biographie a été filtrée par bio_html() avant son enregistrement. ?>
                 <?php if ($person['biography']): ?>
                     <div class="formatted"><?= $person['biography'] ?></div>
                 <?php endif ?>

@@ -21,7 +21,7 @@ function demo_portrait(string $crop): string
 
 function demo_document(): string
 {
-    // The PDF holds only invented text and has no author or machine metadata.
+    // Ce PDF de démonstration contient uniquement un texte inventé, sans métadonnées d'auteur.
     $content = "BT /F1 24 Tf 70 717 Td (Document de demonstration) Tj 0 -38 Td /F1 12 Tf "
         . "(Camille Varenne - Archive fictive) Tj 0 -32 Td "
         . "(Lorem ipsum dolor sit amet, consectetur adipiscing elit.) Tj ET\n";
@@ -32,6 +32,7 @@ function demo_document(): string
         '<< /Length ' . strlen($content) . " >>\nstream\n" . $content . 'endstream',
     ];
     $file = "%PDF-1.4\n";
+    // Le lecteur PDF utilise cette table pour retrouver la position de chaque objet dans le fichier.
     $offsets = "0000000000 65535 f \n";
     foreach ($objects as $index => $object) {
         $offsets .= sprintf("%010d 00000 n \n", strlen($file));
@@ -74,6 +75,7 @@ function seed_demo(PDO $db): void
         ['Anna', 'Breuil', 'vers 1896', '1973'],
         ['Denise', 'Bellier', '1923', '2009'],
     ];
+    // Les relations et les recadrages utilisent des numéros de démonstration, convertis ensuite en véritables ID SQLite.
     $unions = [
         [1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [9, 16, 'union', 1888],
         [12, 17], [18, 20], [13, 23], [14, 25, 'union'],
@@ -91,6 +93,7 @@ function seed_demo(PDO $db): void
         [12, 'Portrait de Marguerite', '270x305+768+282'],
         [14, 'Portrait d’Émile', '275x310+1095+154'],
     ];
+    // Préparer les recadrages avant de verrouiller la base.
     $images = [];
     foreach ($photos as [$id, $title, $crop]) {
         $images[] = [$id, $title, demo_portrait($crop)];
@@ -103,6 +106,7 @@ function seed_demo(PDO $db): void
         . '<li>Ut enim ad minim veniam, quis nostrud exercitation.</li></ul>';
 
     write_transaction($db, static function (PDO $db) use ($people, $unions, $families, $images, $biography, $facts): void {
+        // La base a pu recevoir une fiche pendant la préparation des images.
         if ($db->query('SELECT 1 FROM people LIMIT 1')->fetchColumn()) {
             throw new InputException('La base contient déjà des fiches.');
         }
@@ -138,6 +142,7 @@ function seed_demo(PDO $db): void
             insert_media($db, $ids[$id], 'photo', $title . ' · archive fictive', 'image/webp', $bytes);
         }
         insert_media($db, $ids[9], 'document', 'Archive fictive', 'application/pdf', demo_document());
+        // Les entrées de démonstration illustrent l'activité de plusieurs éditeurs sur l'accueil.
         foreach ([5, 14, 15, 12, 10, 9] as $personId) {
             $person = find_person($db, $ids[$personId]);
             record_change($db, $person, $personId % 2 ? 'Nora Exemple' : 'Hugo Démo', 'edited');

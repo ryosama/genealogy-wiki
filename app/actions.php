@@ -5,6 +5,8 @@ function process_action(PDO $db, string $action, int $personId, ?array $user): n
 {
     check_csrf();
 
+    // Les actions de compte sont accessibles avant la connexion. Les liens reçus par mail
+    // sont vérifiés dans les fonctions métier, en plus du jeton de formulaire.
     switch ($action) {
         case 'login':
             throttle($db, 'login', 15);
@@ -46,6 +48,7 @@ function process_action(PDO $db, string $action, int $personId, ?array $user): n
             go('connexion');
     }
 
+    // Les modifications de contenu exigent un compte actif et conservent son nom dans l'historique.
     $editor = full_name(guard($user));
     switch ($action) {
         case 'save-person':
@@ -55,6 +58,7 @@ function process_action(PDO $db, string $action, int $personId, ?array $user): n
 
         case 'save-relation':
         case 'delete-relation':
+            // La fiche dans l'URL sert de point de retour. L'identifiant du lien vient du formulaire.
             find_person($db, $personId);
             $relationId = id_value($_POST['relation_id'] ?? null);
             if ($action === 'delete-relation') {
@@ -84,6 +88,7 @@ function process_action(PDO $db, string $action, int $personId, ?array $user): n
             go('personne', ['id' => $personId]);
 
         case 'delete-person':
+            // La suppression d'une fiche et la fusion de doublons sont réservées au mainteneur.
             guard($user, true);
             remove_person($db, $personId, $editor);
             flash('La fiche a été supprimée.');

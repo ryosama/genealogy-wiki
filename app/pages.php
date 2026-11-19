@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+// Prépare le nom du gabarit, le titre et les données spécifiques à la page.
 function page_data(PDO $db, string $route, int $id, ?array $user, array $common): array
 {
     switch ($route) {
@@ -20,6 +21,7 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
 
         case 'personne':
             $person = find_person($db, $id);
+            // Les listes utilisent les métadonnées. Le navigateur charge chaque fichier à son URL.
             $media = query($db, 'SELECT id,kind,mime,title FROM media WHERE person_id = ? ORDER BY id', [$id])->fetchAll();
             $photos = array_values(array_filter($media, static fn ($item) => $item['kind'] === 'photo'));
             $documents = array_values(array_filter($media, static fn ($item) => $item['kind'] === 'document'));
@@ -44,6 +46,7 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
             guard($user);
             $person = $id ? find_person($db, $id) : [];
             if ($common['error'] && input($_POST, 'action') === 'save-person') {
+                // Récupérer la saisie après un refus, en nettoyant le HTML avant de le réafficher.
                 foreach (['first_name', 'last_name', 'birth_date', 'death_date', 'birth_place', 'death_place', 'residence',
                     'biography', 'notable_facts'] as $field) {
                     $value = input($_POST, $field);
@@ -66,6 +69,7 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
                 $id ? ['id' => $id] : [])->fetchColumn();
             $page = min(max(1, id_value($_GET['page'] ?? null)), max(1, (int) ceil($count / 25)));
             $offset = ($page - 1) * 25;
+            // La 26e entrée indique qu'une page suivante existe. La page en affiche 25.
             $records = query($db, $base . ' ORDER BY id DESC LIMIT 26 OFFSET ' . $offset, $id ? ['id' => $id] : [])->fetchAll();
             return ['history', 'Historique des modifications', [
                 'person' => $person, 'id' => $id, 'records' => array_slice($records, 0, 25), 'page' => $page, 'more' => count($records) > 25,
@@ -79,6 +83,7 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
 
         case 'demande':
         case 'activation':
+            // Ouvrir un lien dans un mail affiche le formulaire. La décision passe ensuite par POST.
             $pending = $route === 'demande';
             $token = input($_GET, 'token');
             $account = account_token($db, $token, $pending ? 'pending' : 'invited');
@@ -93,6 +98,7 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
 
 function attempted_relation(array $common): ?array
 {
+    // L'arbre rouvre la modale avec la saisie précédente et le message de validation.
     if (!$common['error'] || !in_array(input($_POST, 'action'), ['save-relation', 'delete-relation'], true)) {
         return null;
     }

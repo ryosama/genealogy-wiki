@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+// Types enregistrés dans relations.kind et leurs libellés dans les formulaires et les fiches.
 const RELATION_LABELS = [
     'biological' => 'Filiation biologique',
     'adoptive' => 'Filiation adoptive',
@@ -8,6 +9,7 @@ const RELATION_LABELS = [
     'union' => 'Union',
 ];
 
+// Codes de l'historique, traduits au moment d'afficher l'activité et les modifications.
 const ACTION_LABELS = [
     'created' => 'Fiche créée', 'edited' => 'Fiche modifiée', 'deleted' => 'Fiche supprimée',
     'merged' => 'Fiches fusionnées', 'merged_away' => 'Fiche fusionnée',
@@ -26,11 +28,13 @@ function find_person(PDO $db, int $id): array
 
 function photo_subquery(string $personAlias): string
 {
+    // La première photo ajoutée sert d'avatar. Seul son identifiant est chargé ici.
     return "(SELECT id FROM media WHERE kind = 'photo' AND person_id = $personAlias.id ORDER BY id LIMIT 1)";
 }
 
 function search_people(PDO $db, array $filters, int $page): array
 {
+    // Tous les mots doivent être présents dans le nom normalisé, dans n'importe quel ordre.
     $terms = preg_split('/\s+/', normalized_name(mb_substr($filters['name'], 0, 150)), -1, PREG_SPLIT_NO_EMPTY);
     $where = [];
     $params = [];
@@ -66,7 +70,8 @@ function search_people(PDO $db, array $filters, int $page): array
 
 function stats(PDO $db): array
 {
-    // Sort the parent IDs before grouping so children of the same parents count once.
+    // Chaque enfant est associé à sa liste triée de parents. Une fratrie avec la même liste
+    // compte pour une seule famille, même si les liens ont été saisis dans un autre ordre.
     return $db->query(<<<'SQL'
         SELECT
             (SELECT COUNT(*) FROM people) AS people,
@@ -82,6 +87,7 @@ function stats(PDO $db): array
 
 function recent_people(PDO $db): array
 {
+    // Ne garder que la dernière entrée d'historique de chaque fiche encore présente.
     return $db->query('SELECT p.*, h.editor_name, h.action, h.created_at, ' . photo_subquery('p') . ' AS photo_id'
         . ' FROM history h JOIN people p ON p.id = h.person_id'
         . ' WHERE h.id = (SELECT MAX(id) FROM history WHERE person_id = p.id)'
@@ -90,6 +96,7 @@ function recent_people(PDO $db): array
 
 function record_change(PDO $db, array $person, string $editor, string $action, ?array $details = null): void
 {
+    // Figer les noms tels qu'ils étaient au moment de la modification.
     query($db, 'INSERT INTO history (person_id, person_name, editor_name, action, details) VALUES (?,?,?,?,?)', [
         $person['id'], full_name($person), $editor, $action, $details ? json_data($details) : null,
     ]);
@@ -107,6 +114,7 @@ function save_person(PDO $db, int $id, array $fields, string $editor): int
             return $newId;
         }
         $original = find_person($db, $id);
+        // Un enregistrement identique ne produit aucune entrée. Un vrai changement conserve l'ancienne valeur.
         $changes = array_filter($fields, static fn ($value, $key) => $value !== $original[$key], ARRAY_FILTER_USE_BOTH);
         if ($changes) {
             $assignments = array_map(static fn ($key) => "$key = :$key", array_keys($changes));
@@ -128,6 +136,7 @@ function relation_fields(int $a, int $b, string $kind, ?int $endYear): array
         throw new InputException('Sélectionne deux personnes différentes et un type de relation valide.');
     }
     if (!is_parent_kind($kind)) {
+        // Une union est symétrique. Trier ses extrémités permet de détecter les doublons à l'envers.
         [$a, $b] = [min($a, $b), max($a, $b)];
     }
     return ['a_id' => $a, 'b_id' => $b, 'kind' => $kind, 'end_year' => is_parent_kind($kind) ? null : $endYear];
@@ -138,6 +147,8 @@ function assert_parent_graph(PDO $db, array $relation, int $ignoreId = 0): void
     if (!is_parent_kind($relation['kind'])) {
         return;
     }
+    // Partir de l'enfant et suivre la descendance. Si le parent proposé est déjà atteignable,
+    // le nouveau lien formerait une boucle. En édition, écarter l'ancien lien du parcours.
     $cycle = query($db, <<<'SQL'
         WITH RECURSIVE descendants(id) AS (
             SELECT ?
@@ -177,6 +188,7 @@ function log_relation(PDO $db, array $people, array $relation, string $editor, s
 {
     $currentEnds = [$relation['a_id'], $relation['b_id']];
     $previousEnds = $before ? [$before['a_id'], $before['b_id']] : [];
+    // Quand une extrémité est remplacée, l'ancienne fiche doit aussi garder une trace.
     foreach (array_unique(array_merge($currentEnds, $previousEnds)) as $id) {
         $ends = in_array($id, $currentEnds, true) ? $currentEnds : $previousEnds;
         $other = $ends[0] === $id ? $ends[1] : $ends[0];
@@ -228,6 +240,7 @@ function delete_relation(PDO $db, int $id, string $editor): void
 
 function person_relations(PDO $db, int $id): array
 {
+    // a_id est le parent et b_id l'enfant dans une filiation. Une union se lit dans les deux sens.
     $relations = query($db, <<<'SQL'
         SELECT p.id, p.first_name, p.last_name, r.id AS relation_id, r.kind, r.end_year,
             CASE WHEN r.kind IN ('marriage','union') THEN 'partners'
@@ -235,6 +248,7 @@ function person_relations(PDO $db, int $id): array
         FROM relations r JOIN people p ON p.id = CASE WHEN r.a_id = :id THEN r.b_id ELSE r.a_id END
         WHERE r.a_id = :id OR r.b_id = :id ORDER BY p.birth_year, p.last_name, p.first_name
         SQL, ['id' => $id])->fetchAll();
+    // Déduire la fratrie des parents communs. DISTINCT évite de compter deux fois un frère ou une sœur.
     $siblings = query($db, <<<'SQL'
         SELECT DISTINCT p.id, p.first_name, p.last_name, 'siblings' AS relation_group
         FROM relations a JOIN relations b ON a.a_id = b.a_id JOIN people p ON p.id = b.b_id
@@ -250,6 +264,7 @@ function person_relations(PDO $db, int $id): array
 
 function default_center(PDO $db): int
 {
+    // En l'absence de choix, partir d'une fiche reliée à plusieurs personnes et privilégier ses ascendants à égalité.
     return (int) $db->query(<<<'SQL'
         SELECT p.id
         FROM people p LEFT JOIN relations r ON r.a_id = p.id OR r.b_id = p.id
@@ -262,6 +277,7 @@ function default_center(PDO $db): int
 
 function graph_data(PDO $db): array
 {
+    // Le dessin reçoit les cartes et leurs liens. Les textes longs et les médias restent sur les fiches.
     $people = $db->query('SELECT id, first_name, last_name, birth_date, birth_year, death_date, death_year FROM people ORDER BY id')->fetchAll();
     foreach ($people as &$person) {
         $person = ['id' => $person['id'], 'name' => full_name($person), 'dates' => lifespan($person), 'year' => $person['birth_year'],
@@ -294,6 +310,8 @@ function merge_people(PDO $db, int $keepId, int $removeId, string $editor): void
         $keep = find_person($db, $keepId);
         $remove = find_person($db, $removeId);
         $links = query($db, 'SELECT * FROM relations WHERE a_id = :id OR b_id = :id', ['id' => $removeId])->fetchAll();
+        // Réécrire les liens de l'ancienne fiche vers la fiche conservée. Si un transfert forme
+        // une boucle, la transaction annule le déplacement et remet les relations d'origine.
         query($db, 'DELETE FROM relations WHERE a_id = :id OR b_id = :id', ['id' => $removeId]);
         foreach ($links as $link) {
             $a = $link['a_id'] === $removeId ? $keepId : $link['a_id'];
@@ -315,7 +333,7 @@ function merge_people(PDO $db, int $keepId, int $removeId, string $editor): void
             record_change($db, $other, $editor, 'relinked', ['Personne liée' => full_name($keep)]);
         }
 
-        // Keep filled fields from the main profile and move all media and previous edits.
+        // Compléter les champs vides de la fiche principale en gardant les années associées aux dates.
         $assignments = [];
         $fill = [];
         foreach (['birth_date', 'death_date', 'birth_place', 'death_place', 'residence', 'biography', 'notable_facts'] as $field) {
@@ -333,6 +351,7 @@ function merge_people(PDO $db, int $keepId, int $removeId, string $editor): void
         if ($assignments) {
             query($db, 'UPDATE people SET ' . implode(', ', $assignments) . ' WHERE id = :id', $fill + ['id' => $keepId]);
         }
+        // Réattribuer les fichiers et les modifications avant la suppression en cascade de l'ancienne fiche.
         query($db, 'UPDATE media SET person_id = ? WHERE person_id = ?', [$keepId, $removeId]);
         query($db, 'UPDATE history SET person_id = ? WHERE person_id = ?', [$keepId, $removeId]);
         record_change($db, $keep, $editor, 'merged', ['Fiche fusionnée' => full_name($remove)] + $remove);

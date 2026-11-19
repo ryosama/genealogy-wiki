@@ -29,6 +29,8 @@ try {
             throw new InputException('Cette adresse est déjà utilisée par un compte.');
         }
         fwrite(STDERR, 'Mot de passe (12 caractères au minimum) : ');
+        // Lire le secret sur l'entrée standard pour le garder hors des arguments de la commande.
+        // Sur un terminal interactif, rétablir l'écho même si la lecture échoue.
         $terminal = stream_isatty(STDIN);
         if ($terminal) {
             system('stty -echo');

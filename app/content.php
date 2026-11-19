@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
 
-// The year is retained separately so partial and qualified dates remain searchable.
+// Retourne le libellé à afficher et l'année numérique utilisée par la recherche.
+// Une date inconnue a un libellé vide et aucune année.
 function parse_date(string $value): array
 {
     if ($value === '' || preg_match('/^(?:inconnue?|\?)$/iu', $value)) {
@@ -10,6 +11,7 @@ function parse_date(string $value): array
     if (!preg_match('/^(?:(vers|avant|après|apres)\s+)?(.+)$/iu', $value, $parts)) {
         throw new InputException('Saisis une année, une date complète ou une date comme « vers 1880 ».');
     }
+    // Séparer la précision historique du jour, du mois ou de l'année à contrôler.
     $prefix = mb_strtolower($parts[1] ?? '');
     $prefix = $prefix === 'apres' ? 'après' : $prefix;
     $date = trim($parts[2]);
@@ -33,6 +35,7 @@ function parse_date(string $value): array
 
 function normalized_name(string $value): string
 {
+    // Appliquer le même traitement à la saisie et au nom indexé. Les espaces séparent les mots.
     $value = mb_strtolower($value, 'UTF-8');
     $value = strtr($value, [
         'à' => 'a', 'â' => 'a', 'ä' => 'a', 'á' => 'a', 'ã' => 'a', 'å' => 'a', 'æ' => 'ae',
@@ -45,6 +48,7 @@ function normalized_name(string $value): string
 
 function bio_html(string $html): string
 {
+    // La limite en octets borne le travail du parseur avant le parcours des balises.
     if (strlen($html) > 70000) {
         throw new InputException('Le texte est trop long.');
     }
@@ -60,6 +64,8 @@ function bio_html(string $html): string
 
 function clean_nodes(DOMNode $parent): string
 {
+    // Seules ces balises de mise en forme sont reproduites. Les autres sont déballées,
+    // sauf les contenus actifs ou techniques, ignorés avec tous leurs descendants.
     $allowed = ['p', 'div', 'br', 'b', 'strong', 'i', 'em', 'u', 'ul', 'ol', 'li', 'blockquote', 'h2', 'h3', 'a'];
     $result = '';
     foreach ($parent->childNodes as $node) {
@@ -79,6 +85,7 @@ function clean_nodes(DOMNode $parent): string
         if ($tag === 'br') {
             $result .= '<br>';
         } elseif ($tag === 'a') {
+            // href est le seul attribut de la saisie conservé. Les protocoles sont filtrés.
             $href = trim($node->getAttribute('href'));
             $result .= preg_match('~^(https?://|mailto:)[^\x00-\x20\x7f]+$~iD', $href)
                 ? '<a href="' . e($href) . '" rel="nofollow noreferrer">' . $contents . '</a>'
@@ -92,6 +99,7 @@ function clean_nodes(DOMNode $parent): string
 
 function person_fields(array $source): array
 {
+    // Construire les colonnes autorisées avant de préparer l'écriture SQL.
     $fields = [
         'first_name' => required_text($source, 'first_name', 'Le prénom', 100),
         'last_name' => required_text($source, 'last_name', 'Le nom', 100),
@@ -109,6 +117,7 @@ function person_fields(array $source): array
 
 function lifespan(array $person): string
 {
+    // Le libellé court des cartes marque « vers », « avant » et « après » avec le signe ≈.
     $birth = $person['birth_year'];
     $death = $person['death_year'];
     $birthApproximate = $birth && preg_match('/^\p{L}/u', $person['birth_date']);

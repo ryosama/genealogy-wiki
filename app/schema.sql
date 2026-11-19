@@ -1,3 +1,4 @@
+-- Un compte passe de pending à invited, puis à active. Seule l'empreinte du lien est conservée.
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     first_name TEXT NOT NULL,
@@ -10,6 +11,8 @@ CREATE TABLE IF NOT EXISTS users (
     token_expires INTEGER
 );
 
+-- search_name sert à la recherche sans accents. Les dates gardent leur libellé et une année filtrable.
+-- AUTOINCREMENT évite de réutiliser un identifiant déjà diffusé dans une URL.
 CREATE TABLE IF NOT EXISTS people (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     first_name TEXT NOT NULL,
@@ -26,7 +29,8 @@ CREATE TABLE IF NOT EXISTS people (
     notable_facts TEXT NOT NULL
 );
 
--- For a parent link, a_id is the parent. For a union, the lower ID comes first.
+-- a_id est le parent et b_id l'enfant dans une filiation. Pour une union, le plus petit identifiant vient en premier.
+-- Les liens disparaissent avec la fiche. end_year renseigne la fin d'une union.
 CREATE TABLE IF NOT EXISTS relations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     a_id INTEGER NOT NULL REFERENCES people(id) ON DELETE CASCADE,
@@ -39,6 +43,7 @@ CREATE TABLE IF NOT EXISTS relations (
 );
 CREATE INDEX IF NOT EXISTS relations_by_b ON relations (b_id);
 
+-- Les fichiers binaires sont stockés avec la fiche pour rester dans la même sauvegarde SQLite.
 CREATE TABLE IF NOT EXISTS media (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     person_id INTEGER NOT NULL REFERENCES people(id) ON DELETE CASCADE,
@@ -49,7 +54,8 @@ CREATE TABLE IF NOT EXISTS media (
 );
 CREATE INDEX IF NOT EXISTS media_by_person ON media (person_id, kind, id);
 
--- Keep the historical record even after deletion and snapshot the editor's name.
+-- Garder le nom de la fiche et celui de l'éditeur après suppression de la fiche.
+-- details contient les valeurs précédentes ou les précisions de l'action, en JSON.
 CREATE TABLE IF NOT EXISTS history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     person_id INTEGER REFERENCES people(id) ON DELETE SET NULL,
@@ -61,10 +67,12 @@ CREATE TABLE IF NOT EXISTS history (
 );
 CREATE INDEX IF NOT EXISTS history_by_person ON history (person_id, id DESC);
 
+-- Un compteur par action et adresse IP. bucket stocke la clé sous forme d'empreinte.
 CREATE TABLE IF NOT EXISTS auth_limits (
     bucket TEXT PRIMARY KEY,
     expires_at INTEGER NOT NULL,
     attempts INTEGER NOT NULL
 );
 
+-- Version du schéma vérifiée au démarrage de l'application.
 PRAGMA user_version = 1;

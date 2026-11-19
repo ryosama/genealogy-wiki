@@ -1,15 +1,18 @@
 :root {
     color-scheme: light;
+    /* Couleurs de fond, de texte et de séparation partagées par les pages. */
     --paper: #f8f7f2;
     --white: #fffefa;
     --ink: #252c23;
     --muted: #5f675b;
     --line: #e0e1d7;
+    /* Vert des commandes et des états interactifs, accent du bandeau et actions destructives. */
     --forest: #283c30;
     --forest-hover: #344c39;
     --pale: #e9ede1;
     --accent: #d9bd90;
     --danger: #863a31;
+    /* Titres des fiches, texte de l'interface et ombre des panneaux. */
     --serif: Georgia, 'Times New Roman', serif;
     --sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
     --shadow: 0 3px 14px #253b2810;
@@ -18,6 +21,7 @@
 }
 
 * { box-sizing: border-box; }
+/* Respecter hidden même quand un composant est normalement affiché en flex ou en grille. */
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--paper); color: var(--ink); line-height: 1.55; }
 body > main { min-height: 65vh; }
@@ -57,7 +61,7 @@ h3 { font-size: 1.23rem; }
 .brand { display: inline-flex; width: fit-content; align-items: center; gap: 10px; font-family: var(--serif); font-weight: bold; font-size: 1.57rem; letter-spacing: -.046em; line-height: 1.1; }
 .brand-icon { width: 36px; height: 36px; background: var(--forest); color: #f4f2e6; display: grid; place-items: center; border-radius: 9px; }
 .primary-nav { display: flex; gap: 28px; align-self: stretch; align-items: center; }
-.primary-nav a { position: relative; align-content: center; height: 100%; font-size: .92rem; font-weight: 580; color: #4d574b; }
+.primary-nav a { position: relative; display: inline-flex; align-items: center; gap: .35rem; height: 100%; font-size: .92rem; font-weight: 580; color: #4d574b; }
 .primary-nav a[aria-current], .primary-nav a:hover { color: var(--forest); }
 .primary-nav a[aria-current]::after { content: ''; position: absolute; bottom: 0; height: 2px; background: #5c765e; inset-inline: 0; }
 .header-session, .header-account { justify-self: end; }
@@ -123,6 +127,7 @@ h3 { font-size: 1.23rem; }
 .error-panel p { margin-block: 14px 20px; }
 
 .hero { position: relative; overflow: hidden; background: #26372b; color: #fffdf3; }
+/* Le dégradé raccorde l'illustration au fond et préserve la lisibilité du texte. */
 .hero::before {
     content: '';
     position: absolute;
@@ -147,6 +152,7 @@ h3 { font-size: 1.23rem; }
 .input-with-icon input { padding-left: 35px; }
 .search-submit { min-height: 44px; }
 .home-content { position: relative; padding-bottom: 61px; }
+/* Décaler le bloc de chiffres sur le bord inférieur du bandeau. */
 .stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -312,6 +318,7 @@ h3 { font-size: 1.23rem; }
 .zoom-actions { gap: 2px; border: 1px solid var(--line); border-radius: 8px; padding: 1px; }
 .zoom-actions .icon-button { width: 33px; height: 31px; }
 .zoom-level { min-width: 49px; text-align: center; font-size: .84rem; color: var(--muted); }
+/* Le zoom agrandit le SVG à l'intérieur de cette zone défilante, sans élargir la page. */
 .graph-viewport {
     overflow: auto;
     overscroll-behavior: contain;
@@ -332,6 +339,7 @@ h3 { font-size: 1.23rem; }
 .family-svg .node-dates { fill: #576653; font: 12px var(--sans); }
 .family-svg .tree-node-centre .node-box { fill: #dce7d7; stroke: #527150; stroke-width: 1.7px; }
 .family-svg .tree-node-centre .node-avatar { fill: #bcd1b7; }
+/* Le doigt peut déplacer une carte, tandis que le fond laisse défiler la zone sur mobile. */
 .family-svg a.tree-node { touch-action: none; cursor: pointer; outline: none; }
 .family-svg a.tree-node:hover .node-box, .family-svg a.tree-node:focus-visible .node-box,
 .family-svg .tree-node.is-selected .node-box { stroke: #4c6c4d; stroke-width: 2px; filter: drop-shadow(0 3px 3px #304b304d); }
@@ -339,6 +347,7 @@ h3 { font-size: 1.23rem; }
 .edge-adoptive .edge-visible, .ended-edge .edge-visible { stroke-dasharray: 5 4; }
 .edge-marriage .edge-visible, .edge-union .edge-visible { stroke: #8e6b4b; }
 .edge-union .edge-visible { stroke-dasharray: 2 4; }
+/* Zone cliquable élargie autour d'un trait, avec la même géométrie que le tracé visible. */
 .edge-hit { stroke: transparent; stroke-width: 12px; pointer-events: stroke; }
 .tree-edge[role="button"] { cursor: pointer; outline: none; }
 .tree-edge:hover .edge-visible, .tree-edge:focus-visible .edge-visible {
@@ -459,6 +468,7 @@ dialog h2 { margin: 0 34px 16px 0; }
     *, *::before, *::after { transition: none !important; }
 }
 
+/* La fiche utilise le format portrait. Le menu de l'arbre active la page nommée en paysage. */
 @page genealogy-tree { size: A4 landscape; margin: 10mm; }
 @page { size: A4; margin: 12mm; }
 
@@ -482,6 +492,7 @@ dialog h2 { margin: 0 34px 16px 0; }
     .relation-groups li { min-height: 0; }
     .photo-grid img { width: auto; max-height: 105px; object-fit: contain; }
     .profile-page .graph-panel { display: none; }
+    /* Le mode arbre affiche le SVG prévu pour le papier, en dehors de la zone défilante. */
     .tree-page, .printing-tree { page: genealogy-tree; }
     .tree-page .page-heading, .printing-tree .profile-heading, .printing-tree .profile-grid,
     .graph-heading, .graph-tools, .graph-viewport, .graph-help { display: none !important; }

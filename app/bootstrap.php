@@ -1,9 +1,12 @@
 <?php
 declare(strict_types=1);
 
+// Chemin du projet, commun au serveur web et aux commandes du terminal.
 define('PROJECT_ROOT', dirname(__DIR__));
+// Taille maximale d'un fichier, en octets (12 Mio).
 define('MEDIA_LIMIT', 12 * 1024 * 1024);
 
+// Les valeurs de config/local.php remplacent les réglages destinés au développement.
 $config = array_replace([
     'data_dir' => PROJECT_ROOT . '/var',
     'app_url' => 'http://127.0.0.1:8000',
@@ -12,7 +15,7 @@ $config = array_replace([
     'image_tool' => 'convert',
 ], is_file(PROJECT_ROOT . '/config/local.php') ? require PROJECT_ROOT . '/config/local.php' : []);
 
-// Isolate a demo or a test instance from the site's live SQLite database.
+// Ces variables permettent de lancer une instance de test avec sa propre base et ses propres liens de validation.
 if (getenv('GENEALOGY_DATA_DIR')) {
     $config['data_dir'] = getenv('GENEALOGY_DATA_DIR');
 }
@@ -20,8 +23,10 @@ if (getenv('GENEALOGY_APP_URL')) {
     $config['app_url'] = getenv('GENEALOGY_APP_URL');
 }
 
+// SQLite conserve les horodatages en UTC. Ce fuseau sert à les afficher sur le site.
 date_default_timezone_set('Europe/Paris');
 
+// Une erreur de saisie ou d'accès peut être montrée à l'utilisateur. Son code indique le statut HTTP.
 final class InputException extends RuntimeException {}
 
 function e(string|int|null $value): string
@@ -31,6 +36,7 @@ function e(string|int|null $value): string
 
 function url(string $view = '', array $params = []): string
 {
+    // Une URL relative permet aussi d'installer Racines dans un sous-répertoire.
     return './' . ($view === '' && !$params ? '' : '?' . http_build_query(
         ($view !== '' ? ['view' => $view] : []) + $params,
         '',
@@ -47,11 +53,13 @@ function asset(string $name): string
 function absolute_url(string $view, array $params): string
 {
     global $config;
+    // Dans un mail, le lien doit utiliser le domaine configuré par le mainteneur.
     return rtrim($config['app_url'], '/') . '/' . substr(url($view, $params), 2);
 }
 
 function go(string $view = '', array $params = []): never
 {
+    // La redirection 303 fait suivre un formulaire POST d'une lecture GET.
     header('Location: ' . url($view, $params), true, 303);
     exit;
 }
@@ -63,6 +71,7 @@ function input(array $source, string $key): string
 
 function id_value(mixed $value): int
 {
+    // Les identifiants SQLite sont positifs. Zéro représente un identifiant absent ou invalide.
     return is_scalar($value) ? (filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 0) : 0;
 }
 
@@ -97,6 +106,7 @@ function display_instant(string $value, bool $includeTime = false): string
 
 function json_data(mixed $value): string
 {
+    // L'encodage des chevrons permet d'insérer le JSON dans le bloc <script> de l'arbre.
     return json_encode($value, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE |
         JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE);
 }
@@ -108,6 +118,7 @@ function private_directory(string $directory): string
     }
     $public = realpath(PROJECT_ROOT . '/public');
     $realDirectory = realpath($directory);
+    // Résoudre le chemin réel inclut les liens symboliques dans la vérification.
     if ($realDirectory === false || $realDirectory === $public || str_starts_with($realDirectory . '/', $public . '/')) {
         throw new RuntimeException('Le répertoire de données doit être situé hors du répertoire public.');
     }
@@ -117,6 +128,7 @@ function private_directory(string $directory): string
 function db(): PDO
 {
     global $config;
+    // Réutiliser la connexion pendant la requête ou la commande en cours.
     static $db;
     if ($db instanceof PDO) {
         return $db;
@@ -131,6 +143,7 @@ function db(): PDO
     $db->exec('PRAGMA foreign_keys = ON');
     if ((int) $db->query('PRAGMA user_version')->fetchColumn() === 0) {
         write_transaction($db, static function (PDO $db): void {
+            // Une autre requête a pu initialiser la base pendant l'attente du verrou.
             if ((int) $db->query('PRAGMA user_version')->fetchColumn() === 0) {
                 $db->exec(file_get_contents(PROJECT_ROOT . '/app/schema.sql'));
             }
@@ -139,7 +152,8 @@ function db(): PDO
     return $db;
 }
 
-// Take the SQLite writer lock before reading anything used to validate an edit.
+// Prendre le verrou d'écriture avant les lectures qui conditionnent la modification.
+// Les liens, les fiches et leur historique sont ainsi validés dans la même transaction.
 function write_transaction(PDO $db, callable $write): mixed
 {
     $db->exec('BEGIN IMMEDIATE');
@@ -157,7 +171,8 @@ function query(PDO $db, string $sql, array $params = []): PDOStatement
 {
     $statement = $db->prepare($sql);
     foreach ($params as $key => $value) {
-        // Recursive SQLite queries can compare values without affinity from a table column.
+        // Dans une requête récursive, SQLite peut comparer sans appliquer le type d'une colonne.
+        // Lier un identifiant comme entier évite de le comparer à une chaîne de caractères.
         $type = match (true) {
             is_int($value) => PDO::PARAM_INT,
             $value === null => PDO::PARAM_NULL,
@@ -171,12 +186,14 @@ function query(PDO $db, string $sql, array $params = []): PDOStatement
 
 function view(string $name, array $data = []): void
 {
+    // EXTR_SKIP préserve les variables locales qui servent à charger le gabarit.
     extract($data, EXTR_SKIP);
     require PROJECT_ROOT . '/views/' . $name . '.php';
 }
 
 function flash(string $message): void
 {
+    // Un message de confirmation suit la redirection et s'affiche une seule fois.
     $_SESSION['flash'] = $message;
 }
 
@@ -189,6 +206,7 @@ function take_flash(): ?string
 
 function csrf(): string
 {
+    // Le jeton de formulaire est propre à la session ouverte dans ce navigateur.
     return $_SESSION['csrf'] ??= bin2hex(random_bytes(32));
 }
 

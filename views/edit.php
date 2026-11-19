@@ -30,6 +30,7 @@
             <section class="panel form-panel" aria-labelledby="<?= e($key) ?>-label">
                 <h2 id="<?= e($key) ?>-label"><?= e($label) ?></h2>
                 <div data-rich-editor>
+                    <?php // site.js active la zone visuelle et synchronise le textarea envoyé par le formulaire. ?>
                     <div class="editor-toolbar" role="group" aria-label="Mise en forme" hidden>
                         <button type="button" data-command="bold" title="Gras" aria-label="Gras"><strong>G</strong></button>
                         <button type="button" data-command="italic" title="Italique" aria-label="Italique"><em>I</em></button>
@@ -38,6 +39,7 @@
                         <button type="button" data-command="formatBlock" data-value="h3" title="Intertitre">Intertitre</button>
                         <button type="button" data-command="formatBlock" data-value="p" title="Paragraphe">Paragraphe</button>
                     </div>
+                    <?php // Le contrôleur a passé le HTML par bio_html(), y compris après une erreur de saisie. ?>
                     <div class="rich-input formatted" contenteditable="true" role="textbox" aria-multiline="true"
                         aria-labelledby="<?= e($key) ?>-label" hidden><?= $person[$key] ?? '' ?></div>
                     <textarea name="<?= e($key) ?>" aria-labelledby="<?= e($key) ?>-label" rows="7"><?= e($person[$key] ?? '') ?></textarea>

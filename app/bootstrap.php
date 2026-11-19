@@ -5,7 +5,7 @@ declare(strict_types=1);
 define('PROJECT_ROOT', dirname(__DIR__));
 // Taille maximale d'un fichier, en octets (12 Mio).
 define('MEDIA_LIMIT', 12 * 1024 * 1024);
-// Dernière version SQLite prise en charge par le code courant.
+// Version du schéma complet déclaré dans app/schema.sql.
 define('SCHEMA_VERSION', 3);
 
 // Les valeurs de config/local.php remplacent les réglages destinés au développement.
@@ -137,28 +137,26 @@ function db(): PDO
     }
 
     $directory = private_directory($config['data_dir']);
-    $db = new PDO('sqlite:' . $directory . '/genealogy.sqlite', options: [
+    $connection = new PDO('sqlite:' . $directory . '/genealogy.sqlite', options: [
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     ]);
-    $db->exec('PRAGMA busy_timeout = 5000');
-    $db->exec('PRAGMA foreign_keys = ON');
-    if ((int) $db->query('PRAGMA user_version')->fetchColumn() < SCHEMA_VERSION) {
-        write_transaction($db, static function (PDO $db): void {
+    $connection->exec('PRAGMA busy_timeout = 5000');
+    $connection->exec('PRAGMA foreign_keys = ON');
+    $version = (int) $connection->query('PRAGMA user_version')->fetchColumn();
+    if ($version === 0) {
+        $version = write_transaction($connection, static function (PDO $db): int {
             // Une autre requête a pu initialiser la base pendant l'attente du verrou.
-            $version = (int) $db->query('PRAGMA user_version')->fetchColumn();
-            if ($version === 0) {
+            if ((int) $db->query('PRAGMA user_version')->fetchColumn() === 0) {
                 $db->exec(file_get_contents(PROJECT_ROOT . '/app/schema.sql'));
             }
-            if ($version < 2) {
-                $db->exec(file_get_contents(PROJECT_ROOT . '/app/migrations/002_people_and_siblings.sql'));
-            }
-            if ($version < 3) {
-                $db->exec(file_get_contents(PROJECT_ROOT . '/app/migrations/003_photo_portraits.sql'));
-            }
+            return (int) $db->query('PRAGMA user_version')->fetchColumn();
         });
     }
-    return $db;
+    if ($version !== SCHEMA_VERSION) {
+        throw new RuntimeException(sprintf('La base SQLite utilise le schéma %d. Le schéma %d est requis.', $version, SCHEMA_VERSION));
+    }
+    return $db = $connection;
 }
 
 // Prendre le verrou d'écriture avant les lectures qui conditionnent la modification.

@@ -1,5 +1,7 @@
+-- Schéma complet d'une base neuve. L'application l'exécute dans une transaction.
+
 -- Un compte passe de pending à invited, puis à active. Seule l'empreinte du lien est conservée.
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
@@ -13,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- search_name sert à la recherche sans accents. Les dates gardent leur libellé et une année filtrable.
 -- AUTOINCREMENT évite de réutiliser un identifiant déjà diffusé dans une URL.
-CREATE TABLE IF NOT EXISTS people (
+CREATE TABLE people (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
@@ -26,25 +28,26 @@ CREATE TABLE IF NOT EXISTS people (
     death_place TEXT NOT NULL,
     residence TEXT NOT NULL,
     biography TEXT NOT NULL,
-    notable_facts TEXT NOT NULL
+    notable_facts TEXT NOT NULL,
+    sex TEXT CHECK (sex IN ('male', 'female'))
 );
 
--- a_id est le parent et b_id l'enfant dans une filiation. Pour une union, le plus petit identifiant vient en premier.
+-- a_id est le parent et b_id l'enfant dans une filiation. Pour une union ou une fratrie, le plus petit identifiant vient en premier.
 -- Les liens disparaissent avec la fiche. end_year renseigne la fin d'une union.
-CREATE TABLE IF NOT EXISTS relations (
+CREATE TABLE relations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     a_id INTEGER NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     b_id INTEGER NOT NULL REFERENCES people(id) ON DELETE CASCADE,
-    kind TEXT NOT NULL CHECK (kind IN ('biological','adoptive','marriage','union')),
+    kind TEXT NOT NULL CHECK (kind IN ('biological','adoptive','marriage','union','sibling')),
     end_year INTEGER,
     CHECK (a_id <> b_id),
     CHECK (kind IN ('biological','adoptive') OR a_id < b_id),
     UNIQUE (a_id,b_id,kind)
 );
-CREATE INDEX IF NOT EXISTS relations_by_b ON relations (b_id);
+CREATE INDEX relations_by_b ON relations (b_id);
 
 -- Les fichiers binaires sont stockés avec la fiche pour rester dans la même sauvegarde SQLite.
-CREATE TABLE IF NOT EXISTS media (
+CREATE TABLE media (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     person_id INTEGER NOT NULL REFERENCES people(id) ON DELETE CASCADE,
     kind TEXT NOT NULL CHECK (kind IN ('photo','document')),
@@ -52,11 +55,22 @@ CREATE TABLE IF NOT EXISTS media (
     title TEXT NOT NULL,
     bytes BLOB NOT NULL
 );
-CREATE INDEX IF NOT EXISTS media_by_person ON media (person_id, kind, id);
+CREATE INDEX media_by_person ON media (person_id, kind, id);
+
+-- Chaque fiche peut utiliser le cadrage d'une de ses photos comme médaillon.
+-- La photo source reste disponible en entier. La suppression d'une fiche ou de la photo retire aussi le médaillon.
+CREATE TABLE portraits (
+    person_id INTEGER PRIMARY KEY REFERENCES people(id) ON DELETE CASCADE,
+    media_id INTEGER NOT NULL UNIQUE REFERENCES media(id) ON DELETE CASCADE,
+    crop_x INTEGER NOT NULL CHECK (crop_x >= 0),
+    crop_y INTEGER NOT NULL CHECK (crop_y >= 0),
+    crop_size INTEGER NOT NULL CHECK (crop_size > 0),
+    bytes BLOB NOT NULL
+);
 
 -- Garder le nom de la fiche et celui de l'éditeur après suppression de la fiche.
 -- details contient les valeurs précédentes ou les précisions de l'action, en JSON.
-CREATE TABLE IF NOT EXISTS history (
+CREATE TABLE history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     person_id INTEGER REFERENCES people(id) ON DELETE SET NULL,
     person_name TEXT NOT NULL,
@@ -65,14 +79,14 @@ CREATE TABLE IF NOT EXISTS history (
     details TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS history_by_person ON history (person_id, id DESC);
+CREATE INDEX history_by_person ON history (person_id, id DESC);
 
 -- Un compteur par action et adresse IP. bucket stocke la clé sous forme d'empreinte.
-CREATE TABLE IF NOT EXISTS auth_limits (
+CREATE TABLE auth_limits (
     bucket TEXT PRIMARY KEY,
     expires_at INTEGER NOT NULL,
     attempts INTEGER NOT NULL
 );
 
 -- Version du schéma vérifiée au démarrage de l'application.
-PRAGMA user_version = 1;
+PRAGMA user_version = 3;

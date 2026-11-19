@@ -15,7 +15,7 @@
             <?php foreach ($people as $item): ?>
                 <a class="person-card<?= $item['sex'] ? ' person-card-' . e($item['sex']) : '' ?>"
                     href="<?= e(url('personne', ['id' => $item['id']])) ?>">
-                    <span class="directory-avatar">
+                    <span class="card-avatar">
                         <?= avatar($item) ?>
                         <?= sex_icon($item['sex']) ?>
                     </span>

@@ -33,8 +33,12 @@
                     <p class="empty">Aucune fiche pour le moment.</p>
                 <?php endif ?>
                 <?php foreach ($recent as $item): ?>
-                    <a class="activity-row" href="<?= e(url('personne', ['id' => $item['id']])) ?>">
-                        <?= avatar($item, $item['photo_id']) ?>
+                    <a class="activity-row<?= $item['sex'] ? ' activity-row-' . e($item['sex']) : '' ?>"
+                        href="<?= e(url('personne', ['id' => $item['id']])) ?>">
+                        <span class="card-avatar">
+                            <?= avatar($item, $item['photo_id']) ?>
+                            <?= sex_icon($item['sex']) ?>
+                        </span>
                         <span class="activity-person">
                             <strong><?= e(full_name($item)) ?></strong>
                             <span><?= e(lifespan($item)) ?></span>

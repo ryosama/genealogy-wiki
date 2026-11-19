@@ -183,9 +183,8 @@ h3 { font-size: 1.23rem; }
 .section-top { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; margin-bottom: 14px; }
 .section-top p { margin: 0; color: var(--muted); }
 .activity-list, .explore-card { border: 1px solid var(--line); background: var(--white); border-radius: 13px; overflow: hidden; box-shadow: var(--shadow); }
-.activity-row { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(154px, auto) 18px; gap: 12px; align-items: center; min-height: 68px; padding: 10px 15px; }
+.activity-row { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(154px, auto) 18px; gap: 12px; align-items: center; min-height: 68px; padding: 10px 15px; background: var(--person-fill, var(--white)); }
 .activity-row + .activity-row { border-top: 1px solid #ebebe3; }
-.activity-row:hover { background: #f2f4eb; }
 .activity-row:focus-visible { outline-offset: -3px; }
 .activity-person, .activity-meta { display: grid; min-width: 0; }
 .activity-person strong { font-size: .96rem; font-weight: 670; overflow-wrap: anywhere; }
@@ -236,9 +235,10 @@ h3 { font-size: 1.23rem; }
     padding: 13px;
     background: var(--person-fill, var(--white));
 }
-.person-card:hover { background: var(--person-avatar, #f2f4eb); }
-.directory-avatar { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 61px; }
-.directory-avatar .avatar { --avatar-bg: var(--person-avatar, #e7ece2); --avatar-ink: var(--person-ink, #455d47); }
+.activity-row:hover, .person-card:hover { background: var(--person-avatar, #f2f4eb); }
+/* Réserver la même hauteur sous l'avatar quand la fiche n'a pas de symbole. */
+.card-avatar { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 61px; }
+.card-avatar .avatar { --avatar-bg: var(--person-avatar, #e7ece2); --avatar-ink: var(--person-ink, #455d47); }
 .person-card strong, .person-card small { display: block; overflow-wrap: anywhere; }
 .person-card small { color: var(--muted); font-size: .84rem; }
 .person-card > svg { color: #658068; }
@@ -415,8 +415,8 @@ h3 { font-size: 1.23rem; }
 .graph-surface { min-width: max-content; cursor: grab; }
 .family-svg { display: block; margin-inline: auto; overflow: hidden; user-select: none; }
 .graph-surface.is-dragging, .is-dragging .tree-node { cursor: grabbing; }
-/* Même palette dans l'arbre et dans l'annuaire. La personne centrale a une teinte plus soutenue. */
-.tree-node-female, .person-card-female {
+/* Palette commune aux cartes et à l'activité. La personne centrale de l'arbre a une teinte plus soutenue. */
+.tree-node-female, .person-card-female, .activity-row-female {
     --person-fill: #fff2f6;
     --person-outline: #bd879f;
     --person-avatar: #f4dbe6;
@@ -424,7 +424,7 @@ h3 { font-size: 1.23rem; }
     --node-centre: #f7dfeb;
     --node-emphasis: #965573;
 }
-.tree-node-male, .person-card-male {
+.tree-node-male, .person-card-male, .activity-row-male {
     --person-fill: #eef5fc;
     --person-outline: #86a3bf;
     --person-avatar: #d9e9f8;
@@ -582,7 +582,7 @@ dialog h2 { margin: 0 34px 16px 0; }
     .page-heading { flex-wrap: wrap; margin-bottom: 18px; }
     .section-top { align-items: flex-start; }
     .activity-row { grid-template-columns: auto minmax(0, 1fr) auto; gap: 3px 9px; }
-    .activity-row .avatar { grid-column: 1; grid-row: 1 / span 2; }
+    .activity-row .card-avatar { grid-column: 1; grid-row: 1 / span 2; }
     .activity-person { grid-column: 2; grid-row: 1; }
     .activity-meta { grid-column: 2; grid-row: 2; text-align: left; display: flex; flex-wrap: wrap; gap: 0 6px; font-size: .8rem; }
     .activity-open { grid-column: 3; grid-row: 1 / span 2; }

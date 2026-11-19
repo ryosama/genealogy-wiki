@@ -1,0 +1,16 @@
+/var/
+/.env
+/.env.*
+/config/local.php
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+/incoming/
+/uploads/
+
+# Cahier des charges local et pièces d’archives originales.
+/PROJET.md
+*.pdf

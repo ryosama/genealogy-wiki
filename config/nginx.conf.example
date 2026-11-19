@@ -1,0 +1,26 @@
+server {
+    listen 80;
+    server_name genealogy.example.test;
+
+    root /var/www/genealogy-wiki/public;
+    index index.php;
+    client_max_body_size 16m;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location = /index.php {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root/index.php;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+    }
+
+    location ~ \.php(?:/|$) {
+        return 404;
+    }
+
+    location ~ /\. {
+        return 404;
+    }
+}

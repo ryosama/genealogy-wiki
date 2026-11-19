@@ -23,10 +23,14 @@ export class FamilyGraph {
         this.parents = new Map();
         this.children = new Map();
         this.partners = new Map();
+        this.siblings = new Map();
         for (const link of this.links) {
             if (isParent(link)) {
                 addIndex(this.parents, link.b_id, link.a_id);
                 addIndex(this.children, link.a_id, link.b_id);
+            } else if (link.kind === 'sibling') {
+                addIndex(this.siblings, link.a_id, link.b_id);
+                addIndex(this.siblings, link.b_id, link.a_id);
             } else {
                 addIndex(this.partners, link.a_id, link.b_id);
                 addIndex(this.partners, link.b_id, link.a_id);
@@ -52,7 +56,7 @@ export class FamilyGraph {
     }
 
     // Le rang 0 est celui de la personne centrale. Les ascendants ont un rang négatif.
-    ranks(above, below) {
+    ranks(above, below, includeSiblings) {
         const ranks = new Map([[this.center, 0]]);
         for (const [distance, limit, direction] of [[this.ancestors, above, -1], [this.descendants, below, 1]]) {
             for (const [id, depth] of distance) {
@@ -118,11 +122,24 @@ export class FamilyGraph {
                 }
             }
         }
+        if (includeSiblings) {
+            // En vue familiale, afficher la fratrie au même rang que la personne centrale.
+            // L'impression d'une branche complète se limite à sa lignée et à ses conjoints.
+            const siblings = [...(this.siblings.get(this.center) ?? [])];
+            for (const parent of this.parents.get(this.center) ?? []) {
+                siblings.push(...this.children.get(parent));
+            }
+            for (const sibling of siblings) {
+                if (!ranks.has(sibling)) {
+                    ranks.set(sibling, 0);
+                }
+            }
+        }
         return ranks;
     }
 
-    layout(above, below, fixed = new Map()) {
-        const ranks = this.ranks(above, below);
+    layout(above, below, fixed = new Map(), includeSiblings = true) {
+        const ranks = this.ranks(above, below, includeSiblings);
         const firstRank = Math.min(0, ...ranks.values());
         const lastRank = Math.max(0, ...ranks.values());
         // Décaler les rangs par firstRank pour les indexer dans le tableau des rangées.
@@ -489,23 +506,23 @@ export function linkShapes(model) {
             shapes.push({key: key + '-to-' + id, d, kind: kindOf(edges), arrow: true, links: edges});
         }
     }
-    const unions = links.filter(link => !isParent(link));
+    const lateralLinks = links.filter(link => !isParent(link));
     // Réserver une attache à chaque extrémité, car les identifiants des conjoints sont triés en base.
-    const unionPorts = rankConnections(unions.flatMap(link => [
+    const lateralPorts = rankConnections(lateralLinks.flatMap(link => [
         link, {...link, id: -link.id, a_id: link.b_id, b_id: link.a_id},
     ]), positions, 'a_id', 'b_id');
-    for (const link of unions) {
+    for (const link of lateralLinks) {
         const a = positions.get(link.a_id);
         const b = positions.get(link.b_id);
         let d;
         const distance = Math.abs(a.x - b.x);
         // Relier les voisins par les côtés. Un lien plus long passe au-dessus des cartes.
         if (a.y === b.y && distance >= CARD.width && distance <= CARD.width + CARD.gap + 1) {
-            const y = a.y + CARD.height / 2 + (link.kind === 'marriage' ? -2 : 2);
+            const y = a.y + CARD.height / 2 + ({marriage: -4, union: 0, sibling: 4})[link.kind];
             d = 'M' + (Math.min(a.x, b.x) + CARD.width) + ' ' + y + ' H' + Math.max(a.x, b.x);
         } else {
-            const x1 = centerX(a) + unionPorts.get(link.id);
-            const x2 = centerX(b) + unionPorts.get(-link.id);
+            const x1 = centerX(a) + lateralPorts.get(link.id);
+            const x2 = centerX(b) + lateralPorts.get(-link.id);
             const bend = Math.min(a.y, b.y) - 13 - link.id % 4 * 2.5;
             d = 'M' + x1 + ' ' + a.y + ' V' + bend + ' H' + x2 + ' V' + b.y;
         }

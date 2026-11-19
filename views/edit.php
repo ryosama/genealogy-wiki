@@ -13,6 +13,14 @@
                         <input name="<?= e($key) ?>" value="<?= e($person[$key] ?? '') ?>" maxlength="100" required>
                     </label>
                 <?php endforeach ?>
+                <label>Sexe
+                    <select name="sex">
+                        <option value="">Non renseigné</option>
+                        <?php foreach (SEX_LABELS as $value => $label): ?>
+                            <option value="<?= e($value) ?>" <?= ($person['sex'] ?? '') === $value ? 'selected' : '' ?>><?= e($label) ?></option>
+                        <?php endforeach ?>
+                    </select>
+                </label>
                 <?php foreach (['birth' => 'Naissance', 'death' => 'Décès'] as $key => $label): ?>
                     <label><?= e($label) ?>
                         <input name="<?= e($key) ?>_date" value="<?= e($person[$key . '_date'] ?? '') ?>" placeholder="15/06/1880, 1880 ou vers 1880" maxlength="32">

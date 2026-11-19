@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+// Valeurs stockées dans people.sex. NULL représente une fiche encore non renseignée.
+const SEX_LABELS = ['male' => 'Homme', 'female' => 'Femme'];
+
 // Retourne le libellé à afficher et l'année numérique utilisée par la recherche.
 // Une date inconnue a un libellé vide et aucune année.
 function parse_date(string $value): array
@@ -99,10 +102,15 @@ function clean_nodes(DOMNode $parent): string
 
 function person_fields(array $source): array
 {
+    $sex = input($source, 'sex');
+    if ($sex !== '' && !isset(SEX_LABELS[$sex])) {
+        throw new InputException('Choisis un sexe valide ou laisse ce champ non renseigné.');
+    }
     // Construire les colonnes autorisées avant de préparer l'écriture SQL.
     $fields = [
         'first_name' => required_text($source, 'first_name', 'Le prénom', 100),
         'last_name' => required_text($source, 'last_name', 'Le nom', 100),
+        'sex' => $sex === '' ? null : $sex,
         'birth_place' => short_text($source, 'birth_place', 180),
         'death_place' => short_text($source, 'death_place', 180),
         'residence' => short_text($source, 'residence', 180),

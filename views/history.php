@@ -16,7 +16,13 @@
                             <summary><?= $record['action'] === 'edited' ? 'Valeurs précédentes' : 'Détails' ?></summary>
                             <dl>
                                 <?php foreach (array_intersect_key($details, history_labels()) as $key => $value): ?>
-                                    <div><dt><?= e(history_labels()[$key]) ?></dt><dd><?= e(is_string($value) && trim($value) !== '' ? ($key === 'biography' || $key === 'notable_facts' ? html_entity_decode(strip_tags($value), ENT_QUOTES, 'UTF-8') : $value) : 'Non renseigné') ?></dd></div>
+                                    <?php $display = match (true) {
+                                        !is_string($value) || trim($value) === '' => 'Non renseigné',
+                                        $key === 'sex' => SEX_LABELS[$value] ?? 'Non renseigné',
+                                        in_array($key, ['biography', 'notable_facts'], true) => html_entity_decode(strip_tags($value), ENT_QUOTES, 'UTF-8'),
+                                        default => $value,
+                                    }; ?>
+                                    <div><dt><?= e(history_labels()[$key]) ?></dt><dd><?= e($display) ?></dd></div>
                                 <?php endforeach ?>
                             </dl>
                         </details>

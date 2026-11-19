@@ -1,4 +1,5 @@
 import {CARD, FamilyGraph, isParent, linkShapes} from './tree-layout.js';
+import {GraphMenu} from './tree-menu.js';
 
 // Les éléments graphiques créés par JavaScript appartiennent à l'espace de noms SVG.
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -8,7 +9,12 @@ const KINSHIP = {
     adoptive: 'Filiation adoptive',
     marriage: 'Mariage',
     union: 'Union',
+    sibling: 'Frère ou sœur',
 };
+// Les mêmes valeurs sont stockées dans SQLite et utilisées par les symboles Font Awesome.
+const SEX_LABELS = {male: 'Homme', female: 'Femme'};
+// Durée en millisecondes d'un appui tactile immobile avant l'ouverture du menu.
+const LONG_PRESS_MS = 500;
 const svg = (tag, attributes = {}) => {
     const element = document.createElementNS(SVG_NS, tag);
     Object.entries(attributes).forEach(([name, value]) => element.setAttribute(name, value));
@@ -61,6 +67,7 @@ function drawGraph(family, model, interactive, editable) {
             'data-edge': shape.key, 'data-links': shape.links.map(link => link.id).join(',')});
         const label = shape.links.length === 1 ? linkLabel(family, shape.links[0])
             : 'Filiations partagées · ' + shape.links.length + ' liens';
+        group.dataset.menuTitle = label;
         group.append(svgText('title', label));
         const visible = svg('path', {d: shape.d, class: 'edge-visible'});
         if (shape.arrow) {
@@ -74,6 +81,7 @@ function drawGraph(family, model, interactive, editable) {
                 group.setAttribute('tabindex', '0');
                 group.setAttribute('role', 'button');
                 group.setAttribute('aria-label', label);
+                group.setAttribute('aria-haspopup', 'menu');
             }
         }
         edges.append(group);
@@ -82,10 +90,13 @@ function drawGraph(family, model, interactive, editable) {
 
     for (const [id, position] of model.positions) {
         const person = family.people.get(id);
+        const sex = person.sex;
+        const name = [person.name, SEX_LABELS[sex], person.dates].filter(Boolean).join(' · ');
+        const classes = ['tree-node', id === family.center ? 'tree-node-centre' : '', sex ? 'tree-node-' + sex : ''];
         const attributes = {transform: 'translate(' + position.x + ' ' + position.y + ')',
-            class: 'tree-node' + (id === family.center ? ' tree-node-centre' : ''), 'data-person': id};
+            class: classes.filter(Boolean).join(' '), 'data-person': id, 'data-menu-title': person.name};
         if (interactive) {
-            Object.assign(attributes, {href: personUrl(id), tabindex: '0', 'aria-label': person.name + ', ' + person.dates});
+            Object.assign(attributes, {href: personUrl(id), tabindex: '0', 'aria-label': name, 'aria-haspopup': 'menu'});
         }
         const node = svg(interactive ? 'a' : 'g', attributes);
         const label = svg('g', {'clip-path': 'url(#' + labelId + ')'});
@@ -93,13 +104,18 @@ function drawGraph(family, model, interactive, editable) {
             svgText('text', shorten(person.name, 18), {x: 47, y: 27, class: 'node-name'}),
             svgText('text', shorten(person.dates, 23), {x: 47, y: 45, class: 'node-dates'})
         );
+        // Réserver un emplacement sous les initiales quand le sexe a été renseigné.
         node.append(
-            svgText('title', person.name + ' · ' + person.dates),
+            svgText('title', name),
             svg('rect', {width: CARD.width, height: CARD.height, rx: 10, class: 'node-box'}),
-            svg('circle', {cx: 25, cy: 31, r: 14, class: 'node-avatar'}),
-            svgText('text', person.initials, {x: 25, y: 35, 'text-anchor': 'middle', class: 'node-initials'}),
+            svg('circle', {cx: 25, cy: sex ? 23 : 31, r: 14, class: 'node-avatar'}),
+            svgText('text', person.initials, {x: 25, y: sex ? 27 : 35, 'text-anchor': 'middle', class: 'node-initials'}),
             label
         );
+        if (sex) {
+            node.append(svg('use', {href: './assets/fontawesome.svg#' + sex, x: 19, y: 42, width: 12, height: 12,
+                class: 'node-sex-icon', 'aria-hidden': 'true'}));
+        }
         result.append(node);
     }
     return result;
@@ -142,6 +158,7 @@ class TreeUI {
         this.viewport = panel.querySelector('.graph-viewport');
         this.surface = panel.querySelector('.graph-surface');
         this.printSurface = panel.querySelector('.print-graph');
+        this.contextMenu = new GraphMenu(panel, this.surface, (item, target) => this.runContextAction(item, target));
         this.draw();
         this.fitZoom();
         this.bindControls();
@@ -149,11 +166,20 @@ class TreeUI {
         this.bindCenter();
         if (this.editable) {
             this.bindRelations(data.attempted);
+            this.relativeDialog = panel.querySelector('[data-relative-dialog]');
+            const rejected = data.attemptedRelative;
+            if (rejected && this.family.people.has(rejected.id)) {
+                const preset = [...panel.querySelectorAll('[data-preset]')].find(item => item.dataset.preset === rejected.preset);
+                if (preset) {
+                    this.openRelative(this.family.people.get(rejected.id), preset, rejected);
+                }
+            }
         }
         requestAnimationFrame(() => this.scrollToCenter());
     }
 
     draw() {
+        this.contextMenu.close();
         this.model = this.family.layout(this.levels.ancestors, this.levels.descendants, this.fixed);
         this.drawing = drawGraph(this.family, this.model, true, this.editable);
         this.surface.replaceChildren(this.drawing);
@@ -249,7 +275,7 @@ class TreeUI {
         const ranges = {
             ancestors: [Infinity, 0], descendants: [0, Infinity], both: [Infinity, Infinity],
         };
-        const model = ranges[mode] ? this.family.layout(...ranges[mode]) : this.model;
+        const model = ranges[mode] ? this.family.layout(...ranges[mode], new Map(), false) : this.model;
         const title = document.createElement('h2');
         const modes = {view: 'Vue affichée', ancestors: 'Branche ascendante', descendants: 'Branche descendante',
             both: 'Ascendants et descendants'};
@@ -262,6 +288,13 @@ class TreeUI {
         // wasDragged permet ensuite de distinguer le déplacement d'un clic sur cette carte.
         let gesture;
         let wasDragged = false;
+        let press;
+        const cancelPress = () => {
+            if (press) {
+                window.clearTimeout(press.timer);
+                press = null;
+            }
+        };
         this.surface.addEventListener('pointerdown', event => {
             if (!event.isPrimary || event.button !== 0) {
                 return;
@@ -269,6 +302,18 @@ class TreeUI {
             const card = event.target.closest('[data-person]');
             const strip = event.target.closest('[data-edge]');
             wasDragged = false;
+            const target = this.contextMenu.target(event.target);
+            if (event.pointerType === 'touch' && target) {
+                cancelPress();
+                const {pointerId, clientX: x, clientY: y} = event;
+                // Un appui immobile ouvre le menu. Le déplacement et le défilement annulent le délai.
+                press = {pointerId, x, y, timer: window.setTimeout(() => {
+                    press = null;
+                    gesture = null;
+                    wasDragged = true;
+                    this.contextMenu.open(target, x, y, true);
+                }, LONG_PRESS_MS)};
+            }
             if (strip || (!card && event.pointerType === 'touch')) {
                 return;
             }
@@ -280,6 +325,9 @@ class TreeUI {
             };
         });
         this.surface.addEventListener('pointermove', event => {
+            if (event.pointerId === press?.pointerId && Math.hypot(event.clientX - press.x, event.clientY - press.y) >= 5) {
+                cancelPress();
+            }
             if (!gesture || gesture.pointer !== event.pointerId) {
                 return;
             }
@@ -310,6 +358,9 @@ class TreeUI {
             }
         });
         const finish = event => {
+            if (event.pointerId === press?.pointerId) {
+                cancelPress();
+            }
             if (event.pointerId === gesture?.pointer) {
                 this.surface.classList.remove('is-dragging');
                 gesture = null;
@@ -317,6 +368,13 @@ class TreeUI {
         };
         window.addEventListener('pointerup', finish);
         window.addEventListener('pointercancel', finish);
+        this.surface.addEventListener('contextmenu', event => {
+            if (event.pointerType === 'touch' && this.contextMenu.target(event.target)) {
+                cancelPress();
+                gesture = null;
+                wasDragged = true;
+            }
+        });
         this.surface.addEventListener('dragstart', event => event.preventDefault());
         this.surface.addEventListener('click', event => {
             // Bloquer la navigation après un glisser-déposer tout en préservant le clic simulé au clavier.
@@ -434,11 +492,11 @@ class TreeUI {
         }
     }
 
-    chooseLink(segment) {
+    chooseLink(segment, onSelect = relation => this.openRelation(relation)) {
         // Un trait commun représente plusieurs liens SQLite. Demander lequel éditer avant d'ouvrir le formulaire.
         const candidates = segment.dataset.links.split(',').map(id => this.links.get(Number(id)));
         if (candidates.length === 1) {
-            this.openRelation(candidates[0]);
+            onSelect(candidates[0]);
             return;
         }
         const list = this.linkChooser.querySelector('[data-link-results]');
@@ -451,7 +509,7 @@ class TreeUI {
             button.textContent = linkLabel(this.family, relation);
             button.addEventListener('click', () => {
                 this.linkChooser.close();
-                this.openRelation(relation);
+                onSelect(relation);
             });
             item.append(button);
             list.append(item);
@@ -495,11 +553,13 @@ class TreeUI {
 
     relationLabels() {
         // L'ordre a un sens pour une filiation. L'année de fin concerne uniquement les unions.
-        const parent = isParent({kind: this.relationForm.elements.kind.value});
+        const kind = this.relationForm.elements.kind.value;
+        const parent = isParent({kind});
+        const union = kind === 'marriage' || kind === 'union';
         this.relationForm.querySelector('[data-a-label]').textContent = parent ? 'Parent' : 'Première personne';
         this.relationForm.querySelector('[data-b-label]').textContent = parent ? 'Enfant' : 'Seconde personne';
-        this.relationForm.querySelector('[data-end-label]').hidden = parent;
-        this.relationForm.elements.end_year.disabled = parent;
+        this.relationForm.querySelector('[data-end-label]').hidden = !union;
+        this.relationForm.elements.end_year.disabled = !union;
     }
 
     openRelation(relation = {}) {
@@ -519,6 +579,49 @@ class TreeUI {
         this.relationDialog.querySelector('[data-pick-pair]').hidden = Boolean(relation.id) || this.model.positions.size < 2;
         this.relationLabels();
         this.relationDialog.showModal();
+    }
+
+    runContextAction(item, target) {
+        this.stopPair();
+        switch (item.dataset.menuAction) {
+            case 'edit-link':
+                this.chooseLink(target);
+                break;
+            case 'delete-link':
+                this.chooseLink(target, relation => {
+                    this.relationForm.elements.relation_id.value = relation.id;
+                    this.relationForm.requestSubmit(this.relationForm.querySelector('[data-remove-link]'));
+                });
+                break;
+            case 'create-relative':
+                this.openRelative(this.family.people.get(Number(target.dataset.person)), item);
+                break;
+            case 'delete-person': {
+                const person = this.family.people.get(Number(target.dataset.person));
+                if (window.confirm('Supprimer définitivement la fiche de ' + person.name + ', ses liens et ses fichiers ?')) {
+                    const form = this.panel.querySelector('[data-graph-delete-person]');
+                    form.elements.target_id.value = person.id;
+                    form.requestSubmit();
+                }
+                break;
+            }
+        }
+    }
+
+    openRelative(person, preset, rejected = null) {
+        const dialog = this.relativeDialog;
+        const fields = dialog.querySelector('form.stacked-form').elements;
+        dialog.querySelector('[data-relative-title]').textContent = preset.textContent.trim();
+        dialog.querySelector('[data-relative-reference]').textContent = 'Personne de référence · ' + person.name;
+        fields.reference_id.value = person.id;
+        fields.preset.value = preset.dataset.preset;
+        fields.first_name.value = rejected?.firstName ?? '';
+        fields.last_name.value = rejected?.lastName ?? (preset.dataset.relativeGroup === 'parents' ? '' : person.lastName);
+        const error = dialog.querySelector('[data-relative-error]');
+        error.textContent = rejected?.error ?? '';
+        error.hidden = !rejected;
+        dialog.showModal();
+        fields.first_name.focus();
     }
 }
 

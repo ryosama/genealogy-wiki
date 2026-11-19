@@ -23,6 +23,9 @@
             <section class="panel content-panel" aria-labelledby="bio-heading">
                 <h2 id="bio-heading"><?= icon('book', 20) ?> Biographie</h2>
                 <dl class="life-dates">
+                    <?php if ($person['sex']): ?>
+                        <div><dt>Sexe</dt><dd><?= e(SEX_LABELS[$person['sex']]) ?></dd></div>
+                    <?php endif ?>
                     <?php foreach (['birth' => 'Naissance', 'death' => 'Décès'] as $key => $label): ?>
                         <?php $date = $person[$key . '_date']; $place = $person[$key . '_place']; ?>
                         <div><dt><?= e($label) ?></dt><dd><?= e(implode(' · ', array_filter([$date, $place])) ?: 'Non renseigné') ?></dd></div>

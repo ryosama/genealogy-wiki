@@ -7,6 +7,7 @@ const RELATION_LABELS = [
     'adoptive' => 'Filiation adoptive',
     'marriage' => 'Mariage',
     'union' => 'Union',
+    'sibling' => 'Frère ou sœur',
 ];
 
 // Codes de l'historique, traduits au moment d'afficher l'activité et les modifications.
@@ -102,16 +103,22 @@ function record_change(PDO $db, array $person, string $editor, string $action, ?
     ]);
 }
 
+// Appelée sous transaction, seule ou avec les relations de la nouvelle fiche.
+function insert_person(PDO $db, array $fields, string $editor): int
+{
+    $columns = implode(', ', array_keys($fields));
+    $values = ':' . implode(', :', array_keys($fields));
+    query($db, "INSERT INTO people ($columns) VALUES ($values)", $fields);
+    $id = (int) $db->lastInsertId();
+    record_change($db, $fields + ['id' => $id], $editor, 'created');
+    return $id;
+}
+
 function save_person(PDO $db, int $id, array $fields, string $editor): int
 {
     return write_transaction($db, static function (PDO $db) use ($id, $fields, $editor): int {
         if ($id === 0) {
-            $columns = implode(', ', array_keys($fields));
-            $values = ':' . implode(', :', array_keys($fields));
-            query($db, "INSERT INTO people ($columns) VALUES ($values)", $fields);
-            $newId = (int) $db->lastInsertId();
-            record_change($db, $fields + ['id' => $newId], $editor, 'created');
-            return $newId;
+            return insert_person($db, $fields, $editor);
         }
         $original = find_person($db, $id);
         // Un enregistrement identique ne produit aucune entrée. Un vrai changement conserve l'ancienne valeur.
@@ -136,10 +143,10 @@ function relation_fields(int $a, int $b, string $kind, ?int $endYear): array
         throw new InputException('Sélectionne deux personnes différentes et un type de relation valide.');
     }
     if (!is_parent_kind($kind)) {
-        // Une union est symétrique. Trier ses extrémités permet de détecter les doublons à l'envers.
+        // Une union ou une fratrie est symétrique. Le tri évite les doublons à l'envers.
         [$a, $b] = [min($a, $b), max($a, $b)];
     }
-    return ['a_id' => $a, 'b_id' => $b, 'kind' => $kind, 'end_year' => is_parent_kind($kind) ? null : $endYear];
+    return ['a_id' => $a, 'b_id' => $b, 'kind' => $kind, 'end_year' => in_array($kind, ['marriage', 'union'], true) ? $endYear : null];
 }
 
 function assert_parent_graph(PDO $db, array $relation, int $ignoreId = 0): void
@@ -244,6 +251,7 @@ function person_relations(PDO $db, int $id): array
     $relations = query($db, <<<'SQL'
         SELECT p.id, p.first_name, p.last_name, r.id AS relation_id, r.kind, r.end_year,
             CASE WHEN r.kind IN ('marriage','union') THEN 'partners'
+                 WHEN r.kind = 'sibling' THEN 'siblings'
                  WHEN r.b_id = :id THEN 'parents' ELSE 'children' END AS relation_group
         FROM relations r JOIN people p ON p.id = CASE WHEN r.a_id = :id THEN r.b_id ELSE r.a_id END
         WHERE r.a_id = :id OR r.b_id = :id ORDER BY p.birth_year, p.last_name, p.first_name
@@ -253,6 +261,7 @@ function person_relations(PDO $db, int $id): array
         SELECT DISTINCT p.id, p.first_name, p.last_name, 'siblings' AS relation_group
         FROM relations a JOIN relations b ON a.a_id = b.a_id JOIN people p ON p.id = b.b_id
         WHERE a.b_id = :id AND b.b_id <> :id AND a.kind IN ('biological','adoptive') AND b.kind IN ('biological','adoptive')
+        AND NOT EXISTS (SELECT 1 FROM relations r WHERE r.kind = 'sibling' AND r.a_id = MIN(:id, p.id) AND r.b_id = MAX(:id, p.id))
         ORDER BY p.birth_year, p.last_name, p.first_name
         SQL, ['id' => $id])->fetchAll();
     $groups = ['parents' => [], 'partners' => [], 'children' => [], 'siblings' => []];
@@ -278,10 +287,11 @@ function default_center(PDO $db): int
 function graph_data(PDO $db): array
 {
     // Le dessin reçoit les cartes et leurs liens. Les textes longs et les médias restent sur les fiches.
-    $people = $db->query('SELECT id, first_name, last_name, birth_date, birth_year, death_date, death_year FROM people ORDER BY id')->fetchAll();
+    $people = $db->query('SELECT id, first_name, last_name, sex, birth_date, birth_year, death_date, death_year FROM people ORDER BY id')->fetchAll();
     foreach ($people as &$person) {
         $person = ['id' => $person['id'], 'name' => full_name($person), 'dates' => lifespan($person), 'year' => $person['birth_year'],
-            'initials' => initials($person), 'search' => normalized_name(full_name($person))];
+            'initials' => initials($person), 'search' => normalized_name(full_name($person)),
+            'sex' => $person['sex'], 'lastName' => $person['last_name']];
     }
     unset($person);
 
@@ -336,8 +346,8 @@ function merge_people(PDO $db, int $keepId, int $removeId, string $editor): void
         // Compléter les champs vides de la fiche principale en gardant les années associées aux dates.
         $assignments = [];
         $fill = [];
-        foreach (['birth_date', 'death_date', 'birth_place', 'death_place', 'residence', 'biography', 'notable_facts'] as $field) {
-            if ($keep[$field] === '' && $remove[$field] !== '') {
+        foreach (['sex', 'birth_date', 'death_date', 'birth_place', 'death_place', 'residence', 'biography', 'notable_facts'] as $field) {
+            if (in_array($keep[$field], ['', null], true) && !in_array($remove[$field], ['', null], true)) {
                 $fill[$field] = $remove[$field];
                 $year = str_replace('_date', '_year', $field);
                 if ($year !== $field) {
@@ -361,7 +371,7 @@ function merge_people(PDO $db, int $keepId, int $removeId, string $editor): void
 
 function history_labels(): array
 {
-    return ['first_name' => 'Prénom', 'last_name' => 'Nom', 'birth_date' => 'Naissance',
+    return ['first_name' => 'Prénom', 'last_name' => 'Nom', 'sex' => 'Sexe', 'birth_date' => 'Naissance',
         'death_date' => 'Décès', 'birth_place' => 'Lieu de naissance', 'death_place' => 'Lieu de décès',
         'residence' => 'Lieu de vie', 'biography' => 'Biographie', 'notable_facts' => 'Faits notables',
         'Relation' => 'Relation', 'Relation précédente' => 'Relation précédente', 'Personne liée' => 'Personne liée',

@@ -56,6 +56,12 @@ function process_action(PDO $db, string $action, int $personId, ?array $user): n
             flash($personId ? 'La fiche a été enregistrée.' : 'La fiche a été créée.');
             go('personne', ['id' => $id]);
 
+        case 'create-relative':
+            $referenceId = id_value($_POST['reference_id'] ?? null);
+            create_relative($db, $referenceId, input($_POST, 'preset'), $_POST, $editor);
+            flash('La fiche et ses liens ont été créés.');
+            go('arbre', ['id' => $referenceId]);
+
         case 'save-relation':
         case 'delete-relation':
             // La fiche dans l'URL sert de point de retour. L'identifiant du lien vient du formulaire.
@@ -90,8 +96,15 @@ function process_action(PDO $db, string $action, int $personId, ?array $user): n
         case 'delete-person':
             // La suppression d'une fiche et la fusion de doublons sont réservées au mainteneur.
             guard($user, true);
-            remove_person($db, $personId, $editor);
+            $targetId = array_key_exists('target_id', $_POST) ? id_value($_POST['target_id']) : $personId;
+            remove_person($db, $targetId, $editor);
             flash('La fiche a été supprimée.');
+            if (input($_GET, 'view') === 'arbre') {
+                go('arbre', $targetId === $personId ? [] : ['id' => $personId]);
+            }
+            if ($targetId !== $personId) {
+                go('personne', ['id' => $personId]);
+            }
             go('personnes');
 
         case 'merge-person':

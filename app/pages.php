@@ -31,7 +31,7 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
             return ['person', full_name($person), [
                 'person' => $person, 'photos' => $photos, 'documents' => $documents, 'duplicates' => $duplicates,
                 'groups' => person_relations($db, $id), 'graph' => graph_data($db), 'center' => $id,
-                'attemptedRelation' => attempted_relation($common),
+                'attemptedRelation' => attempted_relation($common), 'attemptedRelative' => attempted_relative($common),
             ]];
 
         case 'arbre':
@@ -39,7 +39,7 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
             $person = $center ? find_person($db, $center) : null;
             return ['tree', 'Arbre généalogique', [
                 'person' => $person, 'graph' => graph_data($db), 'center' => $center,
-                'attemptedRelation' => attempted_relation($common),
+                'attemptedRelation' => attempted_relation($common), 'attemptedRelative' => attempted_relative($common),
             ]];
 
         case 'edition':
@@ -47,7 +47,7 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
             $person = $id ? find_person($db, $id) : [];
             if ($common['error'] && input($_POST, 'action') === 'save-person') {
                 // Récupérer la saisie après un refus, en nettoyant le HTML avant de le réafficher.
-                foreach (['first_name', 'last_name', 'birth_date', 'death_date', 'birth_place', 'death_place', 'residence',
+                foreach (['first_name', 'last_name', 'sex', 'birth_date', 'death_date', 'birth_place', 'death_place', 'residence',
                     'biography', 'notable_facts'] as $field) {
                     $value = input($_POST, $field);
                     if ($field === 'biography' || $field === 'notable_facts') {
@@ -106,5 +106,16 @@ function attempted_relation(array $common): ?array
         'id' => id_value($_POST['relation_id'] ?? null),
         'a_id' => id_value($_POST['a_id'] ?? null), 'b_id' => id_value($_POST['b_id'] ?? null),
         'kind' => input($_POST, 'kind'), 'end_year' => input($_POST, 'end_year'), 'error' => $common['error'],
+    ];
+}
+
+function attempted_relative(array $common): ?array
+{
+    if (!$common['error'] || input($_POST, 'action') !== 'create-relative') {
+        return null;
+    }
+    return [
+        'id' => id_value($_POST['reference_id'] ?? null), 'preset' => input($_POST, 'preset'),
+        'firstName' => input($_POST, 'first_name'), 'lastName' => input($_POST, 'last_name'), 'error' => $common['error'],
     ];
 }

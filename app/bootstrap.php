@@ -5,6 +5,8 @@ declare(strict_types=1);
 define('PROJECT_ROOT', dirname(__DIR__));
 // Taille maximale d'un fichier, en octets (12 Mio).
 define('MEDIA_LIMIT', 12 * 1024 * 1024);
+// Dernière version SQLite prise en charge par le code courant.
+define('SCHEMA_VERSION', 2);
 
 // Les valeurs de config/local.php remplacent les réglages destinés au développement.
 $config = array_replace([
@@ -141,11 +143,15 @@ function db(): PDO
     ]);
     $db->exec('PRAGMA busy_timeout = 5000');
     $db->exec('PRAGMA foreign_keys = ON');
-    if ((int) $db->query('PRAGMA user_version')->fetchColumn() === 0) {
+    if ((int) $db->query('PRAGMA user_version')->fetchColumn() < SCHEMA_VERSION) {
         write_transaction($db, static function (PDO $db): void {
             // Une autre requête a pu initialiser la base pendant l'attente du verrou.
-            if ((int) $db->query('PRAGMA user_version')->fetchColumn() === 0) {
+            $version = (int) $db->query('PRAGMA user_version')->fetchColumn();
+            if ($version === 0) {
                 $db->exec(file_get_contents(PROJECT_ROOT . '/app/schema.sql'));
+            }
+            if ($version < 2) {
+                $db->exec(file_get_contents(PROJECT_ROOT . '/app/migrations/002_people_and_siblings.sql'));
             }
         });
     }

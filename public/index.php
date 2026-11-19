@@ -8,6 +8,7 @@ ini_set('log_errors', '1');
 require dirname(__DIR__) . '/app/bootstrap.php';
 require PROJECT_ROOT . '/app/content.php';
 require PROJECT_ROOT . '/app/people.php';
+require PROJECT_ROOT . '/app/relatives.php';
 require PROJECT_ROOT . '/app/accounts.php';
 require PROJECT_ROOT . '/app/media.php';
 require PROJECT_ROOT . '/app/actions.php';

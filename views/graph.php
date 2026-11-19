@@ -42,19 +42,21 @@
         <span><i class="legend-line"></i> Filiation biologique</span>
         <span><i class="legend-line legend-adoption"></i> Filiation adoptive</span>
         <span><i class="legend-line legend-union"></i> Mariage ou union</span>
+        <span><i class="legend-line legend-sibling"></i> Fratrie déclarée</span>
     </div>
     <?php if ($user): ?>
-        <p class="graph-help">Déplacez une case pour réorganiser la vue temporairement. Cliquez sur un lien pour le modifier.</p>
+        <p class="graph-help">Clic droit ou appui prolongé sur une fiche ou un lien pour afficher ses actions. Glissez une case pour la déplacer temporairement.</p>
         <div class="graph-pair" data-pair-status hidden>
             <p role="status"></p>
             <button class="button button-light button-small" type="button" data-cancel-pair>Annuler</button>
         </div>
     <?php else: ?>
-        <p class="graph-help">Déplacez une case pour réorganiser la vue temporairement.</p>
+        <p class="graph-help">Glissez une case pour la déplacer temporairement.</p>
     <?php endif ?>
     <noscript><p class="empty">Active JavaScript pour afficher le graphique. Les relations restent accessibles dans les fiches.</p></noscript>
-    <?php // tree.js lit ce JSON et restaure le formulaire si le serveur a refusé la modification d'un lien. ?>
-    <script type="application/json" data-graph-data><?= json_data($graph + ['attempted' => $attemptedRelation]) ?></script>
+    <?php // Le JSON permet de réafficher les formulaires de l'arbre après une erreur serveur. ?>
+    <script type="application/json" data-graph-data><?= json_data($graph + ['attempted' => $attemptedRelation, 'attemptedRelative' => $attemptedRelative]) ?></script>
+    <?php view('graph-menu', compact('user', 'center', 'route')); ?>
 
     <dialog data-centre-dialog>
         <form method="dialog" class="dialog-close"><button class="icon-button" aria-label="Fermer"><?= icon('close') ?></button></form>

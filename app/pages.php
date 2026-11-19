@@ -124,5 +124,6 @@ function attempted_relative(array $common): ?array
     return [
         'id' => id_value($_POST['reference_id'] ?? null), 'preset' => input($_POST, 'preset'),
         'firstName' => input($_POST, 'first_name'), 'lastName' => input($_POST, 'last_name'), 'error' => $common['error'],
+        'sex' => array_key_exists('sex', $_POST) ? input($_POST, 'sex') : null,
     ];
 }

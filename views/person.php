@@ -79,7 +79,15 @@
                             <ul>
                                 <?php foreach ($groups[$key] as $relative): ?>
                                     <li>
-                                        <a href="<?= e(url('personne', ['id' => $relative['id']])) ?>"><?= e(full_name($relative)) ?></a>
+                                        <a class="relative-person" href="<?= e(url('personne', ['id' => $relative['id']])) ?>">
+                                            <?php if ($relative['sex']): ?>
+                                                <span class="relative-sex relative-sex-<?= e($relative['sex']) ?>" role="img"
+                                                    aria-label="<?= e(SEX_LABELS[$relative['sex']]) ?>" title="<?= e(SEX_LABELS[$relative['sex']]) ?>">
+                                                    <?= icon($relative['sex'], 15) ?>
+                                                </span>
+                                            <?php endif ?>
+                                            <span><?= e(full_name($relative)) ?></span>
+                                        </a>
                                         <?php if (isset($relative['kind'])): ?>
                                             <small><?= e(RELATION_LABELS[$relative['kind']]) ?><?= $relative['end_year'] ? e(' · fin en ' . $relative['end_year']) : '' ?></small>
                                             <?php if ($user): ?>

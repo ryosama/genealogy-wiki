@@ -251,7 +251,7 @@ function person_relations(PDO $db, int $id): array
 {
     // a_id est le parent et b_id l'enfant dans une filiation. Une union se lit dans les deux sens.
     $relations = query($db, <<<'SQL'
-        SELECT p.id, p.first_name, p.last_name, r.id AS relation_id, r.kind, r.end_year,
+        SELECT p.id, p.first_name, p.last_name, p.sex, r.id AS relation_id, r.kind, r.end_year,
             CASE WHEN r.kind IN ('marriage','union') THEN 'partners'
                  WHEN r.kind = 'sibling' THEN 'siblings'
                  WHEN r.b_id = :id THEN 'parents' ELSE 'children' END AS relation_group
@@ -260,7 +260,7 @@ function person_relations(PDO $db, int $id): array
         SQL, ['id' => $id])->fetchAll();
     // Déduire la fratrie des parents communs. DISTINCT évite de compter deux fois un frère ou une sœur.
     $siblings = query($db, <<<'SQL'
-        SELECT DISTINCT p.id, p.first_name, p.last_name, 'siblings' AS relation_group
+        SELECT DISTINCT p.id, p.first_name, p.last_name, p.sex, 'siblings' AS relation_group
         FROM relations a JOIN relations b ON a.a_id = b.a_id JOIN people p ON p.id = b.b_id
         WHERE a.b_id = :id AND b.b_id <> :id AND a.kind IN ('biological','adoptive') AND b.kind IN ('biological','adoptive')
         AND NOT EXISTS (SELECT 1 FROM relations r WHERE r.kind = 'sibling' AND r.a_id = MIN(:id, p.id) AND r.b_id = MAX(:id, p.id))

@@ -12,6 +12,9 @@
     --pale: #e9ede1;
     --accent: #d9bd90;
     --danger: #863a31;
+    /* Couleurs des symboles dans l'arbre et dans les relations. */
+    --sex-female: #713b57;
+    --sex-male: #315775;
     /* Titres des fiches, texte de l'interface et ombre des panneaux. */
     --serif: Georgia, 'Times New Roman', serif;
     --sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -254,6 +257,11 @@ h3 { font-size: 1.23rem; }
 .relation-groups h3 { font-family: var(--sans); font-size: .88rem; font-weight: 700; color: #506350; }
 .relation-groups ul { list-style: none; margin: 4px 0 0; padding: 0; }
 .relation-groups li { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 8px; min-height: 26px; }
+.relative-person { display: inline-flex; align-items: center; gap: .35rem; min-width: 0; }
+.relative-person > span:last-child { overflow-wrap: anywhere; }
+.relative-sex { display: inline-flex; flex: none; }
+.relative-sex-female { color: var(--sex-female); }
+.relative-sex-male { color: var(--sex-male); }
 .relation-groups a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .relation-groups small { color: #526050; font-size: .81rem; }
 .relation-edit { align-self: center; width: 28px; height: 28px; margin-left: auto; }
@@ -398,7 +406,7 @@ h3 { font-size: 1.23rem; }
     --node-fill: #fff2f6;
     --node-outline: #bd879f;
     --node-avatar: #f4dbe6;
-    --node-ink: #713b57;
+    --node-ink: var(--sex-female);
     --node-centre: #f7dfeb;
     --node-emphasis: #965573;
 }
@@ -406,7 +414,7 @@ h3 { font-size: 1.23rem; }
     --node-fill: #eef5fc;
     --node-outline: #86a3bf;
     --node-avatar: #d9e9f8;
-    --node-ink: #315775;
+    --node-ink: var(--sex-male);
     --node-centre: #dcecfb;
     --node-emphasis: #4f7495;
 }

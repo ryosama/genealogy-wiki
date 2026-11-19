@@ -4,6 +4,10 @@
         <a role="menuitem" tabindex="-1" href="<?= e(url('personne')) ?>" data-person-link><?= icon('user', 16) ?> Ouvrir la fiche</a>
         <?php if ($user): ?>
             <a role="menuitem" tabindex="-1" href="<?= e(url('edition')) ?>" data-person-link><?= icon('edit', 16) ?> Modifier la fiche</a>
+            <button type="button" role="menuitem" tabindex="-1" data-menu-action="create-relative"
+                data-preset="partner" data-relative-group="partners">
+                <?= icon('link', 16) ?> <?= e(RELATIVE_PRESETS['partners']['partner']['title']) ?>
+            </button>
             <?php foreach (['parents' => 'Ascendants', 'children' => 'Descendants', 'siblings' => 'Frères et sœurs'] as $group => $label): ?>
                 <div class="graph-menu-group" role="group" aria-label="<?= e($label) ?>">
                     <p class="graph-menu-label" aria-hidden="true"><?= e($label) ?></p>
@@ -46,6 +50,14 @@
             <input type="hidden" name="preset">
             <label>Prénom <input name="first_name" required maxlength="100"></label>
             <label>Nom <input name="last_name" required maxlength="100"></label>
+            <label data-relative-sex hidden>Sexe
+                <select name="sex" disabled>
+                    <option value="">Non renseigné</option>
+                    <?php foreach (SEX_LABELS as $value => $label): ?>
+                        <option value="<?= e($value) ?>"><?= e($label) ?></option>
+                    <?php endforeach ?>
+                </select>
+            </label>
             <button class="button button-primary" name="action" value="create-relative">Créer la fiche et le lien</button>
         </form>
     </dialog>

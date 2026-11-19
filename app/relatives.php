@@ -1,8 +1,11 @@
 <?php
 declare(strict_types=1);
 
-// Les raccourcis du graphique fixent le sexe, le type de lien et le sens de la filiation.
+// Les raccourcis fixent le type de lien et le sens de la filiation. Le sexe du conjoint reste modifiable.
 const RELATIVE_PRESETS = [
+    'partners' => [
+        'partner' => ['title' => 'Créer un conjoint', 'kind' => 'union'],
+    ],
     'parents' => [
         'father' => ['title' => 'Créer un père', 'sex' => 'male', 'kind' => 'biological'],
         'mother' => ['title' => 'Créer une mère', 'sex' => 'female', 'kind' => 'biological'],
@@ -26,14 +29,23 @@ function create_relative(PDO $db, int $referenceId, string $presetId, array $sou
             continue;
         }
         $preset = $presets[$presetId];
-        // La fiche rapide ne remplit que l'identité. Le formulaire complet permet de l'enrichir ensuite.
-        $fields = person_fields([
-            'first_name' => input($source, 'first_name'),
-            'last_name' => input($source, 'last_name'),
-            'sex' => $preset['sex'],
-        ]);
-        write_transaction($db, static function (PDO $db) use ($referenceId, $group, $preset, $fields, $editor): void {
+        write_transaction($db, static function (PDO $db) use ($referenceId, $group, $preset, $source, $editor): void {
             $reference = find_person($db, $referenceId);
+            // Un conjoint prend par défaut le sexe opposé à celui de la personne de référence.
+            $sex = $preset['sex'] ?? match ($reference['sex']) {
+                'male' => 'female',
+                'female' => 'male',
+                default => '',
+            };
+            if ($group === 'partners' && array_key_exists('sex', $source)) {
+                // Une valeur vide envoyée par le formulaire conserve le choix « Non renseigné ».
+                $sex = input($source, 'sex');
+            }
+            $fields = person_fields([
+                'first_name' => input($source, 'first_name'),
+                'last_name' => input($source, 'last_name'),
+                'sex' => $sex,
+            ]);
             $newId = insert_person($db, $fields, $editor);
             $relative = $fields + ['id' => $newId];
 

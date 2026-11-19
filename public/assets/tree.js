@@ -629,7 +629,14 @@ class TreeUI {
         fields.reference_id.value = person.id;
         fields.preset.value = preset.dataset.preset;
         fields.first_name.value = rejected?.firstName ?? '';
-        fields.last_name.value = rejected?.lastName ?? (preset.dataset.relativeGroup === 'parents' ? '' : person.lastName);
+        const group = preset.dataset.relativeGroup;
+        fields.last_name.value = rejected?.lastName ?? (['children', 'siblings'].includes(group) ? person.lastName : '');
+        // Les autres raccourcis fixent le sexe. Seule la création d'un conjoint propose un choix.
+        const isPartner = group === 'partners';
+        dialog.querySelector('[data-relative-sex]').hidden = !isPartner;
+        fields.sex.disabled = !isPartner;
+        const suggestedSex = ({male: 'female', female: 'male'})[person.sex] ?? '';
+        fields.sex.value = isPartner ? (rejected?.sex ?? suggestedSex) : '';
         const error = dialog.querySelector('[data-relative-error]');
         error.textContent = rejected?.error ?? '';
         error.hidden = !rejected;

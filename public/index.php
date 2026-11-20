@@ -33,6 +33,18 @@ $id = id_value($_GET['id'] ?? null);
 $common = ['route' => $route, 'user' => null, 'notice' => null, 'error' => null];
 
 try {
+    // Un identifiant fourni mais invalide ne doit pas ouvrir la création d'une fiche.
+    if (($route === 'personne' || $route === 'edition') && isset($_GET['id']) && !$id) {
+        throw new InputException('Cette personne est introuvable.', 404);
+    }
+    if ($route === 'edition') {
+        // Les liens et formulaires ouverts avant la fusion rejoignent la fiche unique.
+        if (in_array($_SERVER['REQUEST_METHOD'], ['GET', 'HEAD'], true)) {
+            go('personne', $id ? ['id' => $id] : []);
+        }
+        $route = $common['route'] = 'personne';
+    }
+
     $db = db();
     // Les fichiers publics ont leur propre réponse HTTP, sans gabarit ni session de visiteur.
     if (in_array($route, ['media', 'portrait'], true) && in_array($_SERVER['REQUEST_METHOD'], ['GET', 'HEAD'], true)) {
@@ -42,7 +54,7 @@ try {
     if (!session_start()) {
         throw new RuntimeException('La session PHP est indisponible.');
     }
-    $common['user'] = viewer($db);
+    $common['user'] = current_admin($db);
     $common['notice'] = take_flash();
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {

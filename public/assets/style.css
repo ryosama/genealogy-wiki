@@ -246,14 +246,22 @@ h3 { font-size: 1.23rem; }
 .pagination { display: flex; justify-content: center; flex-wrap: wrap; align-items: center; gap: 12px; color: var(--muted); margin-top: 24px; font-size: .92rem; }
 
 .profile-heading { display: flex; align-items: center; gap: 17px; margin: 4px 0 27px; }
+.profile-portrait { position: relative; display: inline-flex; flex: none; }
 .profile-avatar { width: 77px; height: 77px; font-size: 1.8rem; }
+.profile-portrait .remove-portrait { position: absolute; top: -5px; right: -5px; }
+.profile-portrait .icon-button { width: 32px; height: 32px; border-radius: 50%; color: var(--danger); background: var(--white); border-color: var(--line); }
+.profile-portrait .icon-button:hover { background: #fae9e3; }
 .profile-title { flex: 1; min-width: 0; }
 .profile-title h1 { font-size: clamp(2.1rem, 4.8vw, 3.65rem); }
 .profile-title p { margin-top: 6px; color: var(--muted); }
 .profile-title svg, .profile-location svg { color: #58735b; margin-right: 3px; }
 .profile-location { display: inline-block; margin-left: 11px; }
 .profile-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 19px; }
+.profile-create .profile-grid { grid-template-columns: minmax(0, 1fr); }
 .profile-column { display: flex; flex-direction: column; gap: 16px; }
+.profile-field-editor .form-grid { margin-bottom: 14px; }
+.profile-print-only { display: none; }
+.profile-footer-actions { margin-top: 22px; }
 .content-panel, .form-panel { padding: 21px; }
 .content-panel h2 { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
 .content-panel h2 svg, .graph-heading h2 svg { color: #557159; }
@@ -634,7 +642,7 @@ dialog h2 { margin: 0 34px 16px 0; }
     body { background: white; color: #161b16; font-size: 11pt; line-height: 1.34; }
     body > main { min-height: 0; }
     .site-header, .site-footer, .skip-link, .notices, .back-link, .profile-actions,
-    .profile-admin, .relation-edit, .panel-action, .upload-box, .remove-media, .photo-portrait-link, .graph-pair, .graph-context-menu, dialog { display: none !important; }
+    .profile-admin, .relation-edit, .panel-action, .upload-box, .remove-media, .remove-portrait, .photo-portrait-link, .graph-pair, .graph-context-menu, dialog { display: none !important; }
     .container { width: 100%; max-width: none; }
     .page-space { padding: 0; }
     .profile-heading, .content-panel, .photo-grid figure, .file-row { break-inside: avoid; }
@@ -643,6 +651,9 @@ dialog h2 { margin: 0 34px 16px 0; }
     .panel { box-shadow: none; }
     .profile-grid { display: block; }
     .profile-column { display: contents; }
+    /* Imprimer les données enregistrées dans la même mise en page que la fiche publique. */
+    .profile-field-editor { display: none; }
+    .profile-print-only { display: block; }
     .content-panel { border: 0; border-top: 1px solid var(--line); padding: 9px 0 4px; }
     .content-panel h2 { font-size: 17pt; margin-bottom: 7px; }
     .life-dates > div { padding: 1px; }

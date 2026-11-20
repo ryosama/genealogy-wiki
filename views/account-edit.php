@@ -1,9 +1,11 @@
+<?php // Ce formulaire est réservé aux administrateurs. Le compte fondateur s'ouvre uniquement dans la session de son titulaire. ?>
 <section class="container page-space account-page">
     <a class="text-link back-link" href="<?= e(url('comptes')) ?>"><?= icon('left', 17) ?> Gestion des comptes</a>
     <div class="panel account-panel">
         <h1><?= e($title) ?></h1>
-        <?php if ($account): ?>
-            <p><?= e(ACCOUNT_STATES[$account['state']]) ?> · <?= e(ACCOUNT_ROLES[$account['role']]) ?></p>
+        <?php // Lors d'une modification, rappeler l'état actuel du compte ciblé.
+        if ($account): ?>
+            <p><?= e(ACCOUNT_STATES[$account['state']]) ?></p>
         <?php endif ?>
         <form method="post" action="<?= e(url('compte', $id ? ['id' => $id] : [])) ?>" class="stacked-form">
             <?= csrf_field() ?>
@@ -18,15 +20,6 @@
             <label>Adresse e-mail
                 <input type="email" name="email" value="<?= e($values['email']) ?>" maxlength="254" required>
             </label>
-            <?php if ($canSetRole): ?>
-                <label>Rôle
-                    <select name="role" required>
-                        <?php foreach (ACCOUNT_ROLES as $key => $label): ?>
-                            <option value="<?= e($key) ?>" <?= $key === $values['role'] ? 'selected' : '' ?>><?= e($label) ?></option>
-                        <?php endforeach ?>
-                    </select>
-                </label>
-            <?php endif ?>
             <?php $passwordRequired = $account === null || !$account['has_password']; ?>
             <?php if (!$passwordRequired): ?>
                 <p class="muted">Laisse les deux champs vides pour conserver le mot de passe actuel.</p>

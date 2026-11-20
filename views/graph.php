@@ -1,3 +1,4 @@
+<?php // data-editable indique à tree.js si un administrateur peut manipuler les relations de l'arbre. ?>
 <section class="panel graph-panel" data-graph data-center="<?= e($center) ?>" data-route="<?= e($route) ?>"
     data-editable="<?= $user ? 'true' : 'false' ?>" aria-label="Arbre généalogique interactif">
     <div class="graph-heading">
@@ -7,7 +8,8 @@
         </div>
         <div class="actions graph-actions">
             <button class="button button-light" type="button" data-pick-center><?= icon('search', 17) ?> Changer le centre</button>
-            <?php if ($user): ?>
+            <?php // Le bouton ouvre le formulaire d'ajout de relation pour les administrateurs.
+            if ($user): ?>
                 <button class="button button-light" type="button" data-new-relation><?= icon('link', 17) ?> Ajouter un lien</button>
             <?php endif ?>
             <details class="print-menu">
@@ -44,7 +46,8 @@
         <span><i class="legend-line legend-union"></i> Mariage ou union</span>
         <span><i class="legend-line legend-sibling"></i> Fratrie déclarée</span>
     </div>
-    <?php if ($user): ?>
+    <?php // Les administrateurs voient l'aide à l'édition et le sélecteur de deux fiches. Le déplacement temporaire est public.
+    if ($user): ?>
         <p class="graph-help">Clic droit ou appui prolongé sur une fiche ou un lien pour afficher ses actions. Glissez une case pour la déplacer temporairement.</p>
         <div class="graph-pair" data-pair-status hidden>
             <p role="status"></p>
@@ -65,7 +68,9 @@
         <ul class="center-results" data-center-results></ul>
     </dialog>
 
-    <?php if ($user): ?>
+    <?php // Un administrateur peut sélectionner une relation précise sur un trait partagé pour la modifier ou la supprimer.
+    // Le même formulaire sert aussi à créer de nouveaux liens.
+    if ($user): ?>
         <dialog data-link-chooser>
             <form method="dialog" class="dialog-close"><button class="icon-button" aria-label="Fermer"><?= icon('close') ?></button></form>
             <h2>Choisir la relation</h2>
@@ -82,7 +87,8 @@
                 <input type="hidden" name="relation_id">
                 <label>Type de relation
                     <select name="kind">
-                        <?php foreach (RELATION_LABELS as $key => $label): ?>
+                        <?php // Afficher les types pris en charge avec leur libellé et leur valeur envoyée au serveur.
+                        foreach (RELATION_LABELS as $key => $label): ?>
                             <option value="<?= e($key) ?>"><?= e($label) ?></option>
                         <?php endforeach ?>
                     </select>

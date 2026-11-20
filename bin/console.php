@@ -57,9 +57,9 @@ try {
             }
         }
         $hash = secure_password($password);
-        query(db(), "INSERT INTO users (first_name,last_name,email,password_hash,role,state) VALUES (?,?,?,?,'admin','active')",
+        query(db(), "INSERT INTO users (first_name,last_name,email,password_hash,state) VALUES (?,?,?,?,'active')",
             [$firstName, $lastName, $email, $hash]);
-        fwrite(STDOUT, "Compte du mainteneur créé.\n");
+        fwrite(STDOUT, "Compte administrateur créé.\n");
     } else {
         fwrite($command === 'help' ? STDOUT : STDERR, "php bin/console.php init\n"
             . "php bin/console.php check [--production]\n"

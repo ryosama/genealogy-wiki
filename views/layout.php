@@ -24,19 +24,18 @@
             <?php // Les pages liées à une fiche font partie de la rubrique Personnes. ?>
             <?php foreach (['' => ['Accueil', 'home'], 'personnes' => ['Personnes', 'people'], 'arbre' => ['Arbre', 'tree']]
                 as $section => [$label, $pictogram]):
-                $active = $route === $section || ($section === 'personnes' && in_array($route, ['personne', 'edition', 'historique', 'medaillon'], true)); ?>
+                $active = $route === $section || ($section === 'personnes' && in_array($route, ['personne', 'historique', 'medaillon'], true)); ?>
                 <a href="<?= e(url($section)) ?>" <?= $active ? 'aria-current="page"' : '' ?>>
                     <?= icon($pictogram, 15) ?> <?= e($label) ?>
                 </a>
             <?php endforeach ?>
         </nav>
-        <?php if ($user): ?>
+        <?php // $user contient l'administrateur connecté. Pour un visiteur, sa valeur est nulle et le lien de connexion s'affiche.
+        if ($user): ?>
             <div class="header-account">
-                <?php if ($user['role'] === 'admin'): ?>
-                    <a class="icon-button header-accounts" href="<?= e(url('comptes')) ?>" title="Gestion des comptes"
-                        aria-label="Gestion des comptes" <?= in_array($route, ['comptes', 'compte'], true) ? 'aria-current="page"' : '' ?>><?= icon('people', 19) ?></a>
-                    <a class="icon-button header-history" href="<?= e(url('historique')) ?>" title="Historique général" aria-label="Historique général"><?= icon('activity', 19) ?></a>
-                <?php endif ?>
+                <a class="icon-button header-accounts" href="<?= e(url('comptes')) ?>" title="Gestion des comptes"
+                    aria-label="Gestion des comptes" <?= in_array($route, ['comptes', 'compte'], true) ? 'aria-current="page"' : '' ?>><?= icon('people', 19) ?></a>
+                <a class="icon-button header-history" href="<?= e(url('historique')) ?>" title="Historique général" aria-label="Historique général"><?= icon('activity', 19) ?></a>
                 <form method="post" action="<?= e(url()) ?>" class="inline-form">
                     <?= csrf_field() ?>
                     <button class="button button-light header-session" name="action" value="logout" title="Se déconnecter" aria-label="Déconnexion">
@@ -66,7 +65,8 @@
         <nav aria-label="Liens de pied de page">
             <a href="<?= e(url('personnes')) ?>">Personnes</a>
             <a href="<?= e(url('arbre')) ?>">Arbre</a>
-            <?php if (!$user): ?><a href="<?= e(url('inscription')) ?>">Demander un compte</a><?php endif ?>
+            <?php // Proposer aux visiteurs de demander un compte administrateur depuis le pied de page.
+            if (!$user): ?><a href="<?= e(url('inscription')) ?>">Demander un compte administrateur</a><?php endif ?>
         </nav>
     </div>
 </footer>

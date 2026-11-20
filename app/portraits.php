@@ -74,6 +74,22 @@ function save_portrait(PDO $db, int $personId, int $photoId, array $form, string
     });
 }
 
+function remove_portrait(PDO $db, int $personId, int $photoId, string $editor): bool
+{
+    return write_transaction($db, static function (PDO $db) use ($personId, $photoId, $editor): bool {
+        $person = find_person($db, $personId);
+        // Vérifier la photo affichée dans le formulaire au cas où un autre éditeur aurait choisi un nouveau médaillon.
+        $title = query($db, 'SELECT m.title FROM portraits p JOIN media m ON m.id = p.media_id
+            WHERE p.person_id = ? AND p.media_id = ?', [$personId, $photoId])->fetchColumn();
+        if ($title === false) {
+            return false;
+        }
+        query($db, 'DELETE FROM portraits WHERE person_id = ?', [$personId]);
+        record_change($db, $person, $editor, 'portrait_removed', ['Fichier' => $title]);
+        return true;
+    });
+}
+
 function crop_portrait_image(string $bytes, int $x, int $y, int $size): string
 {
     global $config;

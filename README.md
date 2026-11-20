@@ -1,6 +1,6 @@
 # Racines
 
-Racines est un wiki généalogique en français. Les visiteurs peuvent rechercher une personne, parcourir les liens familiaux et consulter toutes les fiches, photos et pièces d’archives. Les éditeurs validés peuvent enrichir les fiches et corriger les relations.
+Racines est un wiki généalogique en français. Les visiteurs peuvent rechercher une personne, parcourir les liens familiaux et consulter toutes les fiches, photos et pièces d’archives. Les administrateurs peuvent modifier les fiches et les relations et gérer les comptes.
 
 ![Accueil de Racines sur ordinateur](docs/screenshots/accueil.webp)
 
@@ -43,34 +43,36 @@ Ouvrir [Racines en local](http://127.0.0.1:8000). La démo crée 26 personnes fi
 
 ## Consultation et édition
 
+- Les administrateurs modifient directement les champs de la fiche, la biographie et les faits notables. Les boutons « Enregistrer les modifications » en haut et en bas valident la saisie et enregistrent tous les champs de la fiche en une fois.
 - La recherche combine le nom ou prénom et l’année de naissance ou de décès. Les dates peuvent être complètes, réduites à l’année, qualifiées par « vers », « avant » ou « après », ou laissées vides.
 - Une famille correspond à un groupe distinct de parents qui ont au moins un enfant renseigné. Plusieurs enfants du même groupe comptent pour une seule famille. Les frères et sœurs sont déduits des parents communs.
 - L’arbre affiche deux générations de part et d’autre de la personne centrale au départ. Les boutons « Ascendants » et « Descendants » ajoutent des générations. Chaque case ouvre une fiche. On peut zoomer, déplacer la vue et déplacer temporairement les cases. La mise en page privilégie les liens lisibles et réduit les croisements.
 - Dans l’arbre, l’annuaire et l’activité récente, les cartes sont roses pour les femmes, bleues pour les hommes et neutres quand le sexe reste à renseigner. Le symbole apparaît sous l’avatar. Le champ « Sexe » se modifie sur la fiche.
 - Le symbole du sexe apparaît aussi devant les prénoms dans la section « Relations ». Le menu de l’arbre propose « Créer un conjoint » pour une union et « Créer un mari ou une femme » pour un mariage. Le sexe opposé est présélectionné quand le sexe de la personne de référence est connu. Le choix est modifiable.
-- Le clic droit, l’appui prolongé ou `Maj` + `F10` ouvrent le menu de la case ou du lien sélectionné. Les éditeurs peuvent y modifier un lien ou créer un père, une mère, un enfant biologique ou adoptif, un frère ou une sœur. Créer un membre de la fratrie reprend les filiations connues. Si les parents sont inconnus, le site enregistre un lien de fratrie direct. Le mainteneur peut aussi supprimer une fiche depuis l’arbre.
-- Les éditeurs modifient les liens en cliquant dessus ou en passant par la section « Relations ». Pour ajouter un lien, ils peuvent choisir les deux personnes dans le formulaire ou sélectionner les deux cases dans le graphique. Une année de fin signale une union terminée.
+- Le clic droit, l’appui prolongé ou `Maj` + `F10` ouvrent le menu de la case ou du lien sélectionné. Les administrateurs peuvent y modifier un lien, supprimer une fiche ou créer un père, une mère, un enfant biologique ou adoptif, un frère ou une sœur. Créer un membre de la fratrie reprend les filiations connues. Si les parents sont inconnus, le site enregistre un lien de fratrie direct.
+- Les administrateurs modifient les liens en cliquant dessus ou en passant par la section « Relations ». Pour ajouter un lien, ils peuvent choisir les deux personnes dans le formulaire ou sélectionner les deux cases dans le graphique. Une année de fin signale une union terminée.
+- Lorsqu’un parent a un seul partenaire actuel, en union ou en mariage, créer un enfant ou ajouter une filiation crée aussi le lien biologique ou adoptif pour ce partenaire. Chaque filiation peut être retirée séparément depuis le menu de l’arbre. Avec plusieurs partenaires, l’autre filiation s’ajoute manuellement.
 - La fiche et l’arbre s’impriment séparément. Le menu de l’arbre propose la vue affichée, la branche ascendante intégrale, la branche descendante intégrale et les deux branches intégrales.
 - Les photos de fiche sont converties en WebP avec un grand côté de 2 000 pixels, orientation appliquée et métadonnées retirées. Les pièces PDF et JPEG sont téléchargeables. La limite est de 12 Mo par fichier.
 - La galerie affiche les photos entières et adapte leur largeur en conservant leurs proportions.
-- Après l’envoi d’une photo, l’éditeur peut cadrer un médaillon à l’aide du cercle ou des curseurs. Le médaillon sert d’avatar dans l’arbre et dans la liste des personnes. Le cadrage reste modifiable depuis les photos de la fiche.
-- Les modifications sont datées et attribuées à leur éditeur. Le mainteneur peut supprimer une fiche ou fusionner des doublons. La fusion conserve les champs renseignés de la fiche principale et récupère les informations manquantes, les médias, les liens et l’historique de l’autre fiche.
+- Après l’envoi d’une photo, un administrateur peut cadrer un médaillon à l’aide du cercle ou des curseurs. Le médaillon sert d’avatar dans l’arbre et dans la liste des personnes. La croix à côté du médaillon sur la fiche ou le bouton « Retirer le médaillon » dans l’écran de cadrage retire le médaillon et conserve la photo d’origine.
+- Les modifications sont datées et attribuées à leur auteur. Un administrateur peut supprimer une fiche ou fusionner des doublons. La fusion conserve les champs renseignés de la fiche principale et récupère les informations manquantes, les médias, les liens et l’historique de l’autre fiche.
 
 ![Arbre généalogique de démonstration](docs/screenshots/arbre.webp)
 
-### Comptes et demandes d’édition
+### Comptes administrateurs
 
-Créer le compte du mainteneur depuis le terminal. La commande demande le mot de passe et le stocke sous forme de hachage salé.
+Créer le premier compte administrateur depuis le terminal. La commande demande le mot de passe et le stocke sous forme de hachage salé.
 
 ~~~sh
 php bin/console.php admin 'Prénom' 'Nom' 'mainteneur@example.test'
 ~~~
 
-La personne choisit et confirme son mot de passe dans le formulaire de demande, puis répond à un CAPTCHA de calcul. Le compte est placé en attente. Après validation, la personne se connecte avec l’adresse et le mot de passe choisis dans le formulaire.
+La personne choisit et confirme son mot de passe dans le formulaire de demande, puis répond à un CAPTCHA de calcul. La demande est placée en attente. Une fois validée, elle donne accès à tous les droits d’administration avec l’adresse et le mot de passe choisis dans le formulaire.
 
-Le lien **Gestion des comptes** apparaît dans l’en-tête pour les administrateurs. Cette page permet de valider ou de refuser les demandes, ainsi que d’ajouter, de modifier ou de supprimer des comptes. Le premier administrateur est protégé. Le traitement des demandes se fait entièrement depuis cette page.
+Le lien **Gestion des comptes** apparaît dans l’en-tête pour les administrateurs. Cette page permet de valider ou de refuser les demandes, ainsi que d’ajouter, de modifier ou de supprimer des comptes. Pour le premier compte administrateur, seul son titulaire peut le modifier ou le supprimer. Si le dernier administrateur se supprime, la commande `php bin/console.php admin` permet de créer un nouveau compte.
 
-Pour une ancienne demande sans mot de passe, un administrateur peut en définir un depuis la liste avant de valider le compte. Les anciens liens d’activation déjà envoyés restent utilisables jusqu’à leur expiration.
+La mise à jour applique les migrations SQLite à la première ouverture de la base. Pour les appliquer depuis le terminal, lancer `php bin/console.php init`. Les anciens comptes éditeurs actifs repassent en attente de validation et les administrateurs existants devront se reconnecter. Un ancien lien d’invitation valide permet encore de choisir un mot de passe avant validation. Un administrateur peut aussi définir ce mot de passe depuis la gestion des comptes.
 
 ## Configuration de production
 
@@ -86,7 +88,7 @@ Les données d’exécution, la configuration locale, les archives d’origine e
 - `public/` contient le point d’entrée PHP et les fichiers accessibles au navigateur.
 - `app/` contient les règles métier, le schéma SQLite et les données fictives du mode démo.
 - `views/` contient les gabarits HTML.
-- `bin/console.php` vérifie les prérequis, initialise la base et crée le compte du mainteneur.
+- `bin/console.php` vérifie les prérequis, initialise la base et crée des comptes administrateurs.
 
 Les icônes de l’interface sont une sélection d’icônes SVG de Font Awesome Free 7.3.1 par Fonticons, Inc., distribuées sous licence CC BY 4.0. Les tracés d’origine sont regroupés dans `public/assets/fontawesome.svg` et servis avec le site. [Font Awesome Free](https://fontawesome.com/license/free), [licence CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 

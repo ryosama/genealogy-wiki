@@ -12,7 +12,8 @@
     <?php else: ?>
         <div class="panel empty">
             <p>Aucune personne à afficher.</p>
-            <?php if ($user): ?><a class="button button-primary" href="<?= e(url('edition')) ?>"><?= icon('plus', 18) ?> Ajouter une personne</a><?php endif ?>
+            <?php // Même lorsque l'arbre est vide, un administrateur peut créer la première fiche.
+            if ($user): ?><a class="button button-primary" href="<?= e(url('personne')) ?>"><?= icon('plus', 18) ?> Ajouter une personne</a><?php endif ?>
         </div>
     <?php endif ?>
 </section>

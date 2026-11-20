@@ -3,7 +3,8 @@
         <span class="stat-icon"><?= icon('user', 24) ?></span>
         <h1><?= e($title) ?></h1>
 
-        <?php if ($mode === 'login'): ?>
+        <?php // La route détermine si la page affiche la connexion, la demande d'accès ou le formulaire d'une ancienne invitation.
+        if ($mode === 'login'): ?>
             <form class="stacked-form" action="<?= e(url('connexion')) ?>" method="post">
                 <?= csrf_field() ?>
                 <label>Adresse e-mail
@@ -14,7 +15,7 @@
                 </label>
                 <button class="button button-primary" name="action" value="login">Se connecter</button>
             </form>
-            <p class="account-alt"><a href="<?= e(url('inscription')) ?>">Demander un compte éditeur</a></p>
+            <p class="account-alt"><a href="<?= e(url('inscription')) ?>">Demander un compte administrateur</a></p>
         <?php elseif ($mode === 'request'): ?>
             <p>Choisis ton mot de passe dès maintenant. Tu pourras te connecter après validation par un administrateur.</p>
             <form class="stacked-form" action="<?= e(url('inscription')) ?>" method="post">
@@ -39,12 +40,12 @@
                 <button class="button button-primary" name="action" value="request">Envoyer la demande</button>
             </form>
         <?php else: ?>
-            <p>Choisis un mot de passe pour le compte de <?= e(full_name($account)) ?>.</p>
+            <p>Choisis un mot de passe pour le compte de <?= e(full_name($account)) ?>. Un administrateur devra ensuite valider la demande.</p>
             <form class="stacked-form" action="<?= e(url('activation', ['token' => $token])) ?>" method="post">
                 <?= csrf_field() ?>
                 <input type="hidden" name="token" value="<?= e($token) ?>">
                 <?php view('password-fields', ['passwordRequired' => true]); ?>
-                <button class="button button-primary" name="action" value="activate">Activer le compte</button>
+                <button class="button button-primary" name="action" value="activate">Enregistrer le mot de passe</button>
             </form>
         <?php endif ?>
     </div>

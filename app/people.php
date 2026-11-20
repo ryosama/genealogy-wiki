@@ -16,7 +16,7 @@ const ACTION_LABELS = [
     'merged' => 'Fiches fusionnées', 'merged_away' => 'Fiche fusionnée',
     'linked' => 'Relation ajoutée', 'relinked' => 'Relation modifiée', 'unlinked' => 'Relation supprimée',
     'media_added' => 'Fichier ajouté', 'media_removed' => 'Fichier supprimé',
-    'portrait_saved' => 'Médaillon enregistré',
+    'portrait_saved' => 'Médaillon enregistré', 'portrait_removed' => 'Médaillon retiré',
 ];
 
 function find_person(PDO $db, int $id): array
@@ -152,12 +152,16 @@ function relation_fields(int $a, int $b, string $kind, ?int $endYear): array
 
 function assert_parent_graph(PDO $db, array $relation, int $ignoreId = 0): void
 {
-    if (!is_parent_kind($relation['kind'])) {
-        return;
+    if (is_parent_kind($relation['kind']) && parent_graph_has_cycle($db, $relation, $ignoreId)) {
+        throw new InputException('Cette filiation créerait une boucle dans les générations.');
     }
+}
+
+function parent_graph_has_cycle(PDO $db, array $relation, int $ignoreId = 0): bool
+{
     // Partir de l'enfant et suivre la descendance. Si le parent proposé est déjà atteignable,
     // le nouveau lien formerait une boucle. En édition, écarter l'ancien lien du parcours.
-    $cycle = query($db, <<<'SQL'
+    return (bool) query($db, <<<'SQL'
         WITH RECURSIVE descendants(id) AS (
             SELECT ?
             UNION
@@ -166,9 +170,6 @@ function assert_parent_graph(PDO $db, array $relation, int $ignoreId = 0): void
         )
         SELECT 1 FROM descendants WHERE id = ?
         SQL, [$relation['b_id'], $ignoreId, $relation['a_id']])->fetchColumn();
-    if ($cycle) {
-        throw new InputException('Cette filiation créerait une boucle dans les générations.');
-    }
 }
 
 function relation_exists(PDO $db, array $relation, int $ignoreId = 0): array|false
@@ -209,6 +210,36 @@ function log_relation(PDO $db, array $people, array $relation, string $editor, s
     }
 }
 
+// Appelée dans la même transaction que la nouvelle filiation. Chaque parent garde son propre lien.
+function add_partner_filiation(PDO $db, array $relation, array $child, string $editor): void
+{
+    if (!is_parent_kind($relation['kind'])) {
+        return;
+    }
+    // Une union et un mariage avec la même personne désignent un seul partenaire. Avec plusieurs
+    // partenaires actuels, laisser l'éditeur choisir l'autre parent en ajoutant son lien à la main.
+    $partners = query($db, <<<'SQL'
+        SELECT DISTINCT CASE WHEN a_id = :parent THEN b_id ELSE a_id END
+        FROM relations
+        WHERE (a_id = :parent OR b_id = :parent) AND kind IN ('union','marriage') AND end_year IS NULL
+        LIMIT 2
+        SQL, ['parent' => $relation['a_id']])->fetchAll(PDO::FETCH_COLUMN);
+    if (count($partners) !== 1 || $partners[0] === $child['id']) {
+        return;
+    }
+
+    $partnerId = $partners[0];
+    $otherLink = relation_fields($partnerId, $child['id'], $relation['kind'], null);
+    // Préserver une filiation déjà renseignée, même d'un autre type, et ignorer les cycles.
+    $existing = query($db, "SELECT 1 FROM relations WHERE a_id = ? AND b_id = ? AND kind IN ('biological','adoptive')",
+        [$partnerId, $child['id']])->fetchColumn();
+    if ($existing || parent_graph_has_cycle($db, $otherLink)) {
+        return;
+    }
+    insert_relation($db, $otherLink);
+    log_relation($db, [$partnerId => find_person($db, $partnerId), $child['id'] => $child], $otherLink, $editor, 'linked');
+}
+
 function save_relation(PDO $db, int $id, array $relation, string $editor): int
 {
     return write_transaction($db, static function (PDO $db) use ($id, $relation, $editor): int {
@@ -224,6 +255,7 @@ function save_relation(PDO $db, int $id, array $relation, string $editor): int
         if (!$id) {
             $id = insert_relation($db, $relation);
             log_relation($db, $people, $relation, $editor, 'linked');
+            add_partner_filiation($db, $relation, $people[$relation['b_id']], $editor);
         } elseif (array_intersect_key($old, $relation) != $relation) {
             query($db, 'UPDATE relations SET a_id = :a_id, b_id = :b_id, kind = :kind, end_year = :end_year WHERE id = :id',
                 $relation + ['id' => $id]);

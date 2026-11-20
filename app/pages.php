@@ -20,17 +20,33 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
             return ['directory', 'Personnes', $results + ['filters' => $filters]];
 
         case 'personne':
-            $person = find_person($db, $id);
+            // La même fiche sert à la consultation, à l'édition et à la création.
+            $person = $id ? find_person($db, $id) : [];
+            $values = $person;
+            if ($user && $common['error'] && input($_POST, 'action') === 'save-person') {
+                // Conserver la saisie à corriger et nettoyer le HTML avant de le réafficher.
+                foreach (['first_name', 'last_name', 'sex', 'birth_date', 'death_date', 'birth_place', 'death_place', 'residence',
+                    'biography', 'notable_facts'] as $field) {
+                    $value = input($_POST, $field);
+                    $values[$field] = in_array($field, ['biography', 'notable_facts'], true)
+                        ? bio_html(mb_strcut($value, 0, 70000)) : $value;
+                }
+            }
+            if (!$id) {
+                require_admin($user);
+                return ['person', 'Nouvelle personne', ['person' => $person, 'values' => $values]];
+            }
+
             $person['portrait_id'] = (int) query($db, 'SELECT media_id FROM portraits WHERE person_id = ?', [$id])->fetchColumn();
             // Les listes utilisent les métadonnées. Le navigateur charge chaque fichier à son URL.
             $media = query($db, 'SELECT id,kind,mime,title FROM media WHERE person_id = ? ORDER BY id', [$id])->fetchAll();
             $photos = array_values(array_filter($media, static fn ($item) => $item['kind'] === 'photo'));
             $documents = array_values(array_filter($media, static fn ($item) => $item['kind'] === 'document'));
-            $duplicates = $user && $user['role'] === 'admin'
+            $duplicates = $user
                 ? query($db, 'SELECT id,first_name,last_name,birth_year FROM people WHERE id <> ? ORDER BY search_name', [$id])->fetchAll()
                 : [];
             return ['person', full_name($person), [
-                'person' => $person, 'photos' => $photos, 'documents' => $documents, 'duplicates' => $duplicates,
+                'person' => $person, 'values' => $values, 'photos' => $photos, 'documents' => $documents, 'duplicates' => $duplicates,
                 'groups' => person_relations($db, $id), 'graph' => graph_data($db), 'center' => $id,
                 'attemptedRelation' => attempted_relation($common), 'attemptedRelative' => attempted_relative($common),
             ]];
@@ -43,34 +59,15 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
                 'attemptedRelation' => attempted_relation($common), 'attemptedRelative' => attempted_relative($common),
             ]];
 
-        case 'edition':
-            guard($user);
-            $person = $id ? find_person($db, $id) : [];
-            if ($common['error'] && input($_POST, 'action') === 'save-person') {
-                // Récupérer la saisie après un refus, en nettoyant le HTML avant de le réafficher.
-                foreach (['first_name', 'last_name', 'sex', 'birth_date', 'death_date', 'birth_place', 'death_place', 'residence',
-                    'biography', 'notable_facts'] as $field) {
-                    $value = input($_POST, $field);
-                    if ($field === 'biography' || $field === 'notable_facts') {
-                        $value = bio_html(mb_strcut($value, 0, 70000));
-                    }
-                    $person[$field] = $value;
-                }
-            }
-            return ['edit', $id ? 'Modifier la fiche' : 'Nouvelle personne', ['person' => $person, 'id' => $id]];
-
         case 'medaillon':
-            guard($user);
+            require_admin($user);
             $person = find_person($db, $id);
             $editor = portrait_editor_data($db, $id, id_value($_GET['photo'] ?? null));
             return ['portrait', $editor['saved'] ? 'Ajuster le médaillon' : 'Créer le médaillon', $editor + ['person' => $person]];
 
         case 'historique':
-            guard($user);
+            require_admin($user);
             $person = $id ? find_person($db, $id) : null;
-            if (!$person) {
-                guard($user, true);
-            }
             $base = 'SELECT * FROM history' . ($id ? ' WHERE person_id = :id' : '');
             $count = (int) query($db, 'SELECT COUNT(*) FROM history' . ($id ? ' WHERE person_id = :id' : ''),
                 $id ? ['id' => $id] : [])->fetchColumn();
@@ -86,33 +83,29 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
             return ['account', 'Se connecter', ['mode' => 'login']];
 
         case 'inscription':
-            return ['account', 'Demander un compte', ['mode' => 'request', 'challenge' => registration_challenge()]];
+            return ['account', 'Demander un compte administrateur', ['mode' => 'request', 'challenge' => registration_challenge()]];
 
         case 'activation':
             $token = input($_GET, 'token');
-            return ['account', 'Activer le compte', [
+            return ['account', 'Choisir un mot de passe', [
                 'mode' => 'activate', 'token' => $token, 'account' => activation_account($db, $token),
             ]];
 
         case 'comptes':
-            guard($user, true);
+            require_admin($user);
             return ['accounts', 'Gestion des comptes', ['accounts' => managed_accounts($db), 'firstAdmin' => first_admin_id($db)]];
 
         case 'compte':
-            guard($user, true);
-            $account = $id ? editable_account($db, $id) : null;
-            $values = $account ?? ['first_name' => '', 'last_name' => '', 'email' => '', 'role' => 'admin'];
-            $canSetRole = $account === null || $account['state'] === 'active';
+            $admin = require_admin($user);
+            $account = $id ? editable_account($db, $id, $admin['id']) : null;
+            $values = $account ?? ['first_name' => '', 'last_name' => '', 'email' => ''];
             if ($common['error'] && input($_POST, 'action') === 'save-account') {
                 foreach (['first_name', 'last_name', 'email'] as $field) {
                     $values[$field] = input($_POST, $field);
                 }
-                if ($canSetRole) {
-                    $values['role'] = input($_POST, 'role');
-                }
             }
             return ['account-edit', $id ? 'Modifier le compte' : 'Ajouter un compte', [
-                'id' => $id, 'account' => $account, 'values' => $values, 'canSetRole' => $canSetRole,
+                'id' => $id, 'account' => $account, 'values' => $values,
             ]];
 
         default:

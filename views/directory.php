@@ -1,8 +1,9 @@
 <section class="container page-space">
     <div class="page-heading">
         <h1>Personnes</h1>
-        <?php if ($user): ?>
-            <a class="button button-primary" href="<?= e(url('edition')) ?>"><?= icon('plus', 18) ?> Nouvelle personne</a>
+        <?php // Les administrateurs peuvent créer une fiche depuis le répertoire public.
+        if ($user): ?>
+            <a class="button button-primary" href="<?= e(url('personne')) ?>"><?= icon('plus', 18) ?> Nouvelle personne</a>
         <?php endif ?>
     </div>
     <div class="panel search-panel"><?php view('search', ['filters' => $filters]); ?></div>

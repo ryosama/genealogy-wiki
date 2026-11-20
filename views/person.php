@@ -1,162 +1,177 @@
-<section class="container page-space profile-page">
+<?php
+// Les administrateurs retrouvent le formulaire sur la fiche que consultent les visiteurs.
+$canEdit = $user !== null;
+$profileUrl = url('personne', $person ? ['id' => $person['id']] : []);
+$saveLabel = $person ? 'Enregistrer les modifications' : 'Créer la fiche';
+?>
+<section class="container page-space profile-page<?= $person ? '' : ' profile-create edit-page' ?>">
     <a class="text-link back-link" href="<?= e(url('personnes')) ?>"><?= icon('left', 17) ?> Toutes les personnes</a>
     <div class="profile-heading">
-        <?= avatar($person, $photos[0]['id'] ?? null, 'profile-avatar') ?>
-        <div class="profile-title">
-            <h1><?= e(full_name($person)) ?></h1>
-            <p><?= icon('calendar', 18) ?> <?= e(lifespan($person)) ?>
-                <?php if ($person['residence']): ?>
-                    <span class="profile-location"><?= icon('location', 18) ?> <?= e($person['residence']) ?></span>
+        <?php if ($person): ?>
+            <div class="profile-portrait">
+                <?= avatar($person, $photos[0]['id'] ?? null, 'profile-avatar') ?>
+                <?php // Un administrateur peut retirer le cadrage enregistré depuis l'avatar de la fiche.
+                if ($canEdit && $person['portrait_id']): ?>
+                    <?php view('remove-portrait', [
+                        'actionUrl' => $profileUrl, 'photoId' => $person['portrait_id'], 'iconOnly' => true,
+                    ]); ?>
                 <?php endif ?>
-            </p>
+            </div>
+        <?php endif ?>
+        <div class="profile-title">
+            <h1><?= e($title) ?></h1>
+            <?php if ($person): ?>
+                <p><?= icon('calendar', 18) ?> <?= e(lifespan($person)) ?>
+                    <?php if ($person['residence']): ?>
+                        <span class="profile-location"><?= icon('location', 18) ?> <?= e($person['residence']) ?></span>
+                    <?php endif ?>
+                </p>
+            <?php endif ?>
         </div>
         <div class="actions profile-actions">
-            <?= print_button('Imprimer la fiche') ?>
-            <?php if ($user): ?>
-                <a class="button button-primary" href="<?= e(url('edition', ['id' => $person['id']])) ?>"><?= icon('edit', 18) ?> Modifier la fiche</a>
+            <?php if ($person): ?><?= print_button('Imprimer la fiche') ?><?php endif ?>
+            <?php if ($canEdit): ?>
+                <button class="button button-primary" type="submit" form="profile-fields"><?= e($saveLabel) ?></button>
             <?php endif ?>
         </div>
     </div>
 
     <div class="profile-grid">
         <div class="profile-column">
-            <section class="panel content-panel" aria-labelledby="bio-heading">
-                <h2 id="bio-heading"><?= icon('book', 20) ?> Biographie</h2>
-                <dl class="life-dates">
-                    <?php if ($person['sex']): ?>
-                        <div><dt>Sexe</dt><dd><?= e(SEX_LABELS[$person['sex']]) ?></dd></div>
-                    <?php endif ?>
-                    <?php foreach (['birth' => 'Naissance', 'death' => 'Décès'] as $key => $label): ?>
-                        <?php $date = $person[$key . '_date']; $place = $person[$key . '_place']; ?>
-                        <div><dt><?= e($label) ?></dt><dd><?= e(implode(' · ', array_filter([$date, $place])) ?: 'Non renseigné') ?></dd></div>
-                    <?php endforeach ?>
-                    <?php if ($person['residence']): ?>
-                        <div><dt>Lieu de vie</dt><dd><?= e($person['residence']) ?></dd></div>
-                    <?php endif ?>
-                </dl>
-                <?php // Comme les faits notables, la biographie a été filtrée par bio_html() avant son enregistrement. ?>
-                <?php if ($person['biography']): ?>
-                    <div class="formatted"><?= $person['biography'] ?></div>
-                <?php endif ?>
-            </section>
+            <?php view('person-details', compact('person', 'values', 'canEdit', 'profileUrl')); ?>
 
-            <section class="panel content-panel" aria-labelledby="facts-heading">
-                <h2 id="facts-heading"><?= icon('activity', 21) ?> Faits notables</h2>
-                <?php if ($person['notable_facts']): ?>
-                    <div class="formatted"><?= $person['notable_facts'] ?></div>
-                <?php else: ?>
-                    <p class="muted">Aucun fait notable renseigné.</p>
-                <?php endif ?>
-            </section>
-
-            <section class="panel content-panel" aria-labelledby="documents-heading">
-                <h2 id="documents-heading"><?= icon('file', 20) ?> Documents</h2>
-                <?php if (!$documents): ?><p class="muted">Aucun document.</p><?php endif ?>
-                <div class="files">
-                    <?php foreach ($documents as $document): ?>
-                        <div class="file-row">
-                            <a href="<?= e(url('media', ['id' => $document['id'], 'download' => 1])) ?>">
-                                <?= icon('download', 18) ?> <span><?= e($document['title']) ?></span>
-                                <small><?= $document['mime'] === 'application/pdf' ? 'PDF' : 'JPEG' ?></small>
-                            </a>
-                            <?php if ($user): view('remove-media', ['personId' => $person['id'], 'mediaId' => $document['id']]); endif ?>
-                        </div>
-                    <?php endforeach ?>
-                </div>
-                <?php if ($user): view('upload', ['personId' => $person['id'], 'kind' => 'document']); endif ?>
-            </section>
-        </div>
-
-        <div class="profile-column">
-            <section class="panel content-panel" aria-labelledby="relationships-heading">
-                <h2 id="relationships-heading"><?= icon('people', 21) ?> Relations</h2>
-                <?php if (!array_filter($groups)): ?><p class="muted">Aucune relation renseignée.</p><?php endif ?>
-                <div class="relation-groups">
-                    <?php foreach (['parents' => 'Parents', 'partners' => 'Conjoints', 'children' => 'Enfants', 'siblings' => 'Frères et sœurs'] as $key => $label): ?>
-                        <?php if (!$groups[$key]) { continue; } ?>
-                        <div>
-                            <h3><?= e($label) ?></h3>
-                            <ul>
-                                <?php foreach ($groups[$key] as $relative): ?>
-                                    <li>
-                                        <a class="relative-person" href="<?= e(url('personne', ['id' => $relative['id']])) ?>">
-                                            <?= sex_icon($relative['sex']) ?>
-                                            <span><?= e(full_name($relative)) ?></span>
-                                        </a>
-                                        <?php if (isset($relative['kind'])): ?>
-                                            <small><?= e(RELATION_LABELS[$relative['kind']]) ?><?= $relative['end_year'] ? e(' · fin en ' . $relative['end_year']) : '' ?></small>
-                                            <?php if ($user): ?>
-                                                <button class="icon-button relation-edit" data-edit-relation="<?= e($relative['relation_id']) ?>"
-                                                    type="button" title="Modifier cette relation" aria-label="<?= e('Modifier la relation avec ' . full_name($relative)) ?>">
-                                                    <?= icon('edit', 15) ?>
-                                                </button>
-                                            <?php endif ?>
-                                        <?php endif ?>
-                                    </li>
-                                <?php endforeach ?>
-                            </ul>
-                        </div>
-                    <?php endforeach ?>
-                </div>
-                <?php if ($user): ?><button class="button button-light panel-action" type="button" data-new-relation><?= icon('plus', 17) ?> Ajouter une relation</button><?php endif ?>
-            </section>
-
-            <section class="panel content-panel" aria-labelledby="photos-heading">
-                <h2 id="photos-heading"><?= icon('photo', 20) ?> Photos</h2>
-                <?php if (!$photos): ?><p class="muted">Aucune photo.</p><?php endif ?>
-                <?php if ($photos): ?>
-                    <div class="photo-grid">
-                        <?php foreach ($photos as $photo): ?>
-                            <figure>
-                                <a class="photo-original" href="<?= e(url('media', ['id' => $photo['id']])) ?>">
-                                    <img src="<?= e(url('media', ['id' => $photo['id']])) ?>" alt="<?= e($photo['title']) ?>" loading="lazy">
+            <?php if ($person): ?>
+                <section class="panel content-panel" aria-labelledby="documents-heading">
+                    <h2 id="documents-heading"><?= icon('file', 20) ?> Documents</h2>
+                    <?php if (!$documents): ?><p class="muted">Aucun document.</p><?php endif ?>
+                    <div class="files">
+                        <?php // Chaque document est téléchargeable par tous et peut être retiré par un administrateur.
+                        foreach ($documents as $document): ?>
+                            <div class="file-row">
+                                <a href="<?= e(url('media', ['id' => $document['id'], 'download' => 1])) ?>">
+                                    <?= icon('download', 18) ?> <span><?= e($document['title']) ?></span>
+                                    <small><?= $document['mime'] === 'application/pdf' ? 'PDF' : 'JPEG' ?></small>
                                 </a>
-                                <figcaption><?= e($photo['title']) ?></figcaption>
-                                <?php if ($user): ?>
-                                    <a class="text-link photo-portrait-link" href="<?= e(url('medaillon', ['id' => $person['id'], 'photo' => $photo['id']])) ?>">
-                                        <?= icon('edit', 15) ?> <?= $person['portrait_id'] === $photo['id'] ? 'Ajuster le médaillon' : 'Créer un médaillon' ?>
-                                    </a>
-                                    <?php view('remove-media', ['personId' => $person['id'], 'mediaId' => $photo['id']]); ?>
-                                <?php endif ?>
-                            </figure>
+                                <?php // Le bouton de retrait cible le document de cette ligne.
+                                if ($user): view('remove-media', ['personId' => $person['id'], 'mediaId' => $document['id']]); endif ?>
+                            </div>
                         <?php endforeach ?>
                     </div>
-                <?php endif ?>
-                <?php if ($user): view('upload', ['personId' => $person['id'], 'kind' => 'photo']); endif ?>
-            </section>
+                    <?php // Afficher le formulaire d'ajout de document pour les administrateurs, même si la liste est vide.
+                    if ($user): view('upload', ['personId' => $person['id'], 'kind' => 'document']); endif ?>
+                </section>
+            <?php endif ?>
         </div>
+
+        <?php // Les relations et les fichiers s'ajoutent dès que la fiche a été créée.
+        if ($person): ?>
+            <div class="profile-column">
+                <section class="panel content-panel" aria-labelledby="relationships-heading">
+                    <h2 id="relationships-heading"><?= icon('people', 21) ?> Relations</h2>
+                    <?php if (!array_filter($groups)): ?><p class="muted">Aucune relation renseignée.</p><?php endif ?>
+                    <div class="relation-groups">
+                        <?php // Présenter les proches par catégorie et conserver le même ordre pour tous les lecteurs.
+                        foreach (['parents' => 'Parents', 'partners' => 'Conjoints', 'children' => 'Enfants', 'siblings' => 'Frères et sœurs'] as $key => $label): ?>
+                            <?php if (!$groups[$key]) { continue; } ?>
+                            <div>
+                                <h3><?= e($label) ?></h3>
+                                <ul>
+                                    <?php // Chaque proche a un lien public vers sa fiche. Les liens enregistrés peuvent être édités.
+                                    foreach ($groups[$key] as $relative): ?>
+                                        <li>
+                                            <a class="relative-person" href="<?= e(url('personne', ['id' => $relative['id']])) ?>">
+                                                <?= sex_icon($relative['sex']) ?>
+                                                <span><?= e(full_name($relative)) ?></span>
+                                            </a>
+                                            <?php // Une relation enregistrée fournit le type et l'identifiant que la fenêtre de modification utilise.
+                                            if (isset($relative['kind'])): ?>
+                                                <small><?= e(RELATION_LABELS[$relative['kind']]) ?><?= $relative['end_year'] ? e(' · fin en ' . $relative['end_year']) : '' ?></small>
+                                                <?php // Un administrateur peut ouvrir cette relation dans le formulaire de l'arbre.
+                                                if ($user): ?>
+                                                    <button class="icon-button relation-edit" data-edit-relation="<?= e($relative['relation_id']) ?>"
+                                                        type="button" title="Modifier cette relation" aria-label="<?= e('Modifier la relation avec ' . full_name($relative)) ?>">
+                                                        <?= icon('edit', 15) ?>
+                                                    </button>
+                                                <?php endif ?>
+                                            <?php endif ?>
+                                        </li>
+                                    <?php endforeach ?>
+                                </ul>
+                            </div>
+                        <?php endforeach ?>
+                    </div>
+                    <?php // Permettre aux administrateurs d'ouvrir le formulaire de création d'une relation depuis la fiche.
+                    if ($user): ?><button class="button button-light panel-action" type="button" data-new-relation><?= icon('plus', 17) ?> Ajouter une relation</button><?php endif ?>
+                </section>
+
+                <section class="panel content-panel" aria-labelledby="photos-heading">
+                    <h2 id="photos-heading"><?= icon('photo', 20) ?> Photos</h2>
+                    <?php if (!$photos): ?><p class="muted">Aucune photo.</p><?php endif ?>
+                    <?php if ($photos): ?>
+                        <div class="photo-grid">
+                            <?php // Afficher les originaux à tous les lecteurs et ajouter des commandes par photo pour les administrateurs.
+                            foreach ($photos as $photo): ?>
+                                <figure>
+                                    <a class="photo-original" href="<?= e(url('media', ['id' => $photo['id']])) ?>">
+                                        <img src="<?= e(url('media', ['id' => $photo['id']])) ?>" alt="<?= e($photo['title']) ?>" loading="lazy">
+                                    </a>
+                                    <figcaption><?= e($photo['title']) ?></figcaption>
+                                    <?php // Le lien de cadrage propose de créer ou d'ajuster le médaillon selon la photo source.
+                                    // Le formulaire de suppression cible la photo elle-même.
+                                    if ($user): ?>
+                                        <a class="text-link photo-portrait-link" href="<?= e(url('medaillon', ['id' => $person['id'], 'photo' => $photo['id']])) ?>">
+                                            <?= icon('edit', 15) ?> <?= $person['portrait_id'] === $photo['id'] ? 'Ajuster le médaillon' : 'Créer un médaillon' ?>
+                                        </a>
+                                        <?php view('remove-media', ['personId' => $person['id'], 'mediaId' => $photo['id']]); ?>
+                                    <?php endif ?>
+                                </figure>
+                            <?php endforeach ?>
+                        </div>
+                    <?php endif ?>
+                    <?php // Afficher le formulaire d'ajout de photo pour les administrateurs, même si la galerie est vide.
+                    if ($user): view('upload', ['personId' => $person['id'], 'kind' => 'photo']); endif ?>
+                </section>
+            </div>
+        <?php endif ?>
     </div>
 
-    <?php view('graph', get_defined_vars()); ?>
+    <?php if ($person): view('graph', get_defined_vars()); endif ?>
 
-    <?php if ($user): ?>
+    <?php // Les administrateurs peuvent consulter l'historique de cette fiche.
+    if ($person && $canEdit): ?>
         <section class="profile-admin">
             <a class="text-link" href="<?= e(url('historique', ['id' => $person['id']])) ?>"><?= icon('activity', 18) ?> Historique de la fiche</a>
-            <?php if ($user['role'] === 'admin'): ?>
-                <details class="admin-tools">
-                    <summary>Gestion de la fiche</summary>
-                    <?php if ($duplicates): ?>
-                        <form method="post" action="<?= e(url('personne', ['id' => $person['id']])) ?>" class="stacked-form"
-                            data-confirm="Fusionner ces deux fiches ? Cette action supprime la fiche sélectionnée.">
-                            <?= csrf_field() ?>
-                            <label>Récupérer les données manquantes, les médias et les relations d’une autre fiche
-                                <select name="duplicate_id" required>
-                                    <option value="">Choisir un doublon</option>
-                                    <?php foreach ($duplicates as $duplicate): ?>
-                                        <option value="<?= e($duplicate['id']) ?>"><?= e(full_name($duplicate) . ($duplicate['birth_year'] ? ' · ' . $duplicate['birth_year'] : '')) ?></option>
-                                    <?php endforeach ?>
-                                </select>
-                            </label>
-                            <button class="button button-light" name="action" value="merge-person">Fusionner les fiches</button>
-                        </form>
-                    <?php endif ?>
-                    <form method="post" action="<?= e(url('personne', ['id' => $person['id']])) ?>"
-                        data-confirm="Supprimer définitivement la fiche, ses relations et ses fichiers ?">
+            <details class="admin-tools">
+                <summary>Gestion de la fiche</summary>
+                <?php // Proposer la fusion lorsqu'une autre fiche peut servir de source à la fiche affichée.
+                if ($duplicates): ?>
+                    <form method="post" action="<?= e(url('personne', ['id' => $person['id']])) ?>" class="stacked-form"
+                        data-confirm="Fusionner ces deux fiches ? Cette action supprime la fiche sélectionnée.">
                         <?= csrf_field() ?>
-                        <button class="button button-danger" name="action" value="delete-person">Supprimer la fiche</button>
+                        <label>Récupérer les données manquantes, les médias et les relations d’une autre fiche
+                            <select name="duplicate_id" required>
+                                <option value="">Choisir un doublon</option>
+                                <?php // Indiquer l'année de naissance si elle est connue pour distinguer les homonymes.
+                                foreach ($duplicates as $duplicate): ?>
+                                    <option value="<?= e($duplicate['id']) ?>"><?= e(full_name($duplicate) . ($duplicate['birth_year'] ? ' · ' . $duplicate['birth_year'] : '')) ?></option>
+                                <?php endforeach ?>
+                            </select>
+                        </label>
+                        <button class="button button-light" name="action" value="merge-person">Fusionner les fiches</button>
                     </form>
-                </details>
-            <?php endif ?>
+                <?php endif ?>
+                <form method="post" action="<?= e(url('personne', ['id' => $person['id']])) ?>"
+                    data-confirm="Supprimer définitivement la fiche, ses relations et ses fichiers ?">
+                    <?= csrf_field() ?>
+                    <button class="button button-danger" name="action" value="delete-person">Supprimer la fiche</button>
+                </form>
+            </details>
         </section>
+    <?php endif ?>
+
+    <?php if ($canEdit): ?>
+        <div class="actions profile-actions profile-footer-actions">
+            <button class="button button-primary" type="submit" form="profile-fields"><?= e($saveLabel) ?></button>
+        </div>
     <?php endif ?>
 </section>

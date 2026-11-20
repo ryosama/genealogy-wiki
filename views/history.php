@@ -1,5 +1,7 @@
+<?php // Le contrôleur réserve aux administrateurs l'historique général et celui des fiches. ?>
 <section class="container page-space edit-page">
-    <?php if ($person): ?>
+    <?php // Dans l'historique d'une personne, proposer un retour direct à sa fiche.
+    if ($person): ?>
         <a class="text-link back-link" href="<?= e(url('personne', ['id' => $person['id']])) ?>"><?= icon('left', 17) ?> <?= e(full_name($person)) ?></a>
     <?php endif ?>
     <div class="page-heading"><h1>Historique des modifications</h1></div>

@@ -1,3 +1,4 @@
+<?php // Les administrateurs utilisent cet écran pour cadrer une photo de la fiche. ?>
 <section class="container page-space portrait-page">
     <?php $profile = url('personne', ['id' => $person['id']]); ?>
     <a class="text-link back-link" href="<?= e($profile) ?>"><?= icon('left', 17) ?> Revenir à la fiche</a>
@@ -9,7 +10,8 @@
     </div>
 
     <?php $photoUrl = url('media', ['id' => $photo['id']]); ?>
-    <form action="<?= e(url('medaillon', ['id' => $person['id'], 'photo' => $photo['id']])) ?>" method="post" data-portrait-editor>
+    <?php $cropUrl = url('medaillon', ['id' => $person['id'], 'photo' => $photo['id']]); ?>
+    <form id="portrait-crop-form" action="<?= e($cropUrl) ?>" method="post" data-portrait-editor>
         <?= csrf_field() ?>
         <div class="panel portrait-workspace">
             <div class="portrait-photo-pane">
@@ -41,9 +43,11 @@
                 </div>
             </div>
         </div>
-        <div class="actions portrait-actions">
-            <button class="button button-primary" name="action" value="save-portrait">Enregistrer le médaillon</button>
-            <a class="button button-light" href="<?= e($profile) ?>"><?= $saved ? 'Annuler' : 'Plus tard' ?></a>
-        </div>
     </form>
+    <div class="actions portrait-actions">
+        <button class="button button-primary" form="portrait-crop-form" name="action" value="save-portrait">Enregistrer le médaillon</button>
+        <a class="button button-light" href="<?= e($profile) ?>"><?= $saved ? 'Annuler' : 'Plus tard' ?></a>
+        <?php // Permettre le retrait lorsque cette photo est la source du médaillon enregistré.
+        if ($saved): view('remove-portrait', ['actionUrl' => $cropUrl, 'photoId' => $photo['id']]); endif ?>
+    </div>
 </section>

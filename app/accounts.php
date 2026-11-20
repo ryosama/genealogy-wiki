@@ -4,17 +4,17 @@ declare(strict_types=1);
 // Fenêtre de comptage des tentatives pour une adresse IP et une action, en secondes.
 const AUTH_WINDOW = 15 * 60;
 
-function viewer(PDO $db): ?array
+function current_admin(PDO $db): ?array
 {
-    // La session mémorise seulement l'identifiant. Les droits actuels viennent de la base.
-    $id = $_SESSION['user_id'] ?? null;
+    // La clé admin_id exige une nouvelle connexion pour les sessions ouvertes avant le changement de droits.
+    $id = $_SESSION['admin_id'] ?? null;
     return $id ? (query($db, "SELECT * FROM users WHERE id = ? AND state = 'active'", [$id])->fetch() ?: null) : null;
 }
 
-function guard(?array $user, bool $admin = false): array
+function require_admin(?array $user): array
 {
-    if (!$user || ($admin && $user['role'] !== 'admin')) {
-        throw new InputException('Connecte-toi avec un compte autorisé pour effectuer cette action.', 403);
+    if (!$user) {
+        throw new InputException('Connecte-toi avec un compte administrateur pour effectuer cette action.', 403);
     }
     return $user;
 }
@@ -69,7 +69,7 @@ function sign_in(PDO $db, array $form): bool
     }
     // Renouveler l'identifiant de la session au moment où elle acquiert des droits.
     session_regenerate_id(true);
-    $_SESSION = ['user_id' => $user['id']];
+    $_SESSION = ['admin_id' => $user['id']];
     return true;
 }
 
@@ -96,14 +96,14 @@ function request_account(PDO $db, array $form): void
     $identity = account_identity($form);
     $hash = confirmed_password($form);
     // Conserver une demande existante ou un compte actif. Le message public est le même dans les deux cas.
-    query($db, "INSERT INTO users (first_name,last_name,email,password_hash,role,state)"
-        . " VALUES (:first_name,:last_name,:email,:password_hash,'editor','pending') ON CONFLICT(email) DO NOTHING",
+    query($db, "INSERT INTO users (first_name,last_name,email,password_hash,state)"
+        . " VALUES (:first_name,:last_name,:email,:password_hash,'pending') ON CONFLICT(email) DO NOTHING",
         $identity + ['password_hash' => $hash]);
 }
 
 function activation_account(PDO $db, string $token): array
 {
-    // Les invitations envoyées avant la validation depuis l'administration restent utilisables jusqu'à leur expiration.
+    // Une ancienne invitation reste utilisable pour choisir un mot de passe avant validation.
     $user = preg_match('/^[a-f0-9]{64}$/D', $token)
         ? query($db, "SELECT * FROM users WHERE token_hash = ? AND token_expires >= ? AND state = 'invited'",
             [hash('sha256', $token), time()])->fetch()
@@ -119,7 +119,7 @@ function activate_account(PDO $db, string $token, string $hash): void
     write_transaction($db, static function (PDO $db) use ($token, $hash): void {
         // Vérifier et consommer l'invitation dans la même transaction.
         $user = activation_account($db, $token);
-        query($db, "UPDATE users SET state = 'active', password_hash = ?, token_hash = NULL, token_expires = NULL WHERE id = ?",
+        query($db, "UPDATE users SET state = 'pending', password_hash = ?, token_hash = NULL, token_expires = NULL WHERE id = ?",
             [$hash, $user['id']]);
     });
 }

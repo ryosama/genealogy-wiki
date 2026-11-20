@@ -1,26 +1,26 @@
 -- Schéma complet d'une base neuve. L'application l'exécute dans une transaction.
 
--- Les nouveaux éditeurs passent de pending à active. invited permet encore l'activation des anciennes invitations.
+-- Seuls les comptes actifs ont accès à l'administration. Une ancienne invitation sert à définir un mot de passe.
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
     email TEXT NOT NULL COLLATE NOCASE UNIQUE,
     password_hash TEXT,
-    role TEXT NOT NULL CHECK (role IN ('admin', 'editor')),
     state TEXT NOT NULL CHECK (state IN ('pending', 'invited', 'active')),
     token_hash TEXT UNIQUE,
     token_expires INTEGER
 );
 
--- Le premier administrateur reste le même, même si un compte plus ancien est ensuite promu.
+-- La clé étrangère protège le premier administrateur. Lui seul peut lever la protection pour se supprimer.
 CREATE TABLE first_admin (
     slot INTEGER PRIMARY KEY CHECK (slot = 1),
     user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE RESTRICT
 );
 
 CREATE TRIGGER users_record_first_admin
-AFTER INSERT ON users WHEN NEW.role = 'admin' AND NEW.state = 'active'
+AFTER INSERT ON users
+WHEN NEW.state = 'active' AND NOT EXISTS (SELECT 1 FROM users WHERE state = 'active' AND id <> NEW.id)
 BEGIN
     INSERT OR IGNORE INTO first_admin (slot, user_id) VALUES (1, NEW.id);
 END;
@@ -101,4 +101,4 @@ CREATE TABLE auth_limits (
 );
 
 -- Version du schéma vérifiée au démarrage de l'application.
-PRAGMA user_version = 4;
+PRAGMA user_version = 5;

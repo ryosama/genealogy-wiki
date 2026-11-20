@@ -65,7 +65,10 @@ function create_relative(PDO $db, int $referenceId, string $presetId, array $sou
             } elseif ($group === 'parents') {
                 link_new_relative($db, $relative, $reference, $preset['kind'], $editor);
             } else {
-                link_new_relative($db, $reference, $relative, $preset['kind'], $editor);
+                $relation = link_new_relative($db, $reference, $relative, $preset['kind'], $editor);
+                if ($group === 'children') {
+                    add_partner_filiation($db, $relation, $relative, $editor);
+                }
             }
         });
         return;
@@ -74,9 +77,10 @@ function create_relative(PDO $db, int $referenceId, string $presetId, array $sou
 }
 
 // Le nouveau sommet vient d'être créé dans la transaction. Aucun trajet existant ne peut former une boucle.
-function link_new_relative(PDO $db, array $first, array $second, string $kind, string $editor): void
+function link_new_relative(PDO $db, array $first, array $second, string $kind, string $editor): array
 {
     $relation = relation_fields($first['id'], $second['id'], $kind, null);
     insert_relation($db, $relation);
     log_relation($db, [$first['id'] => $first, $second['id'] => $second], $relation, $editor, 'linked');
+    return $relation;
 }

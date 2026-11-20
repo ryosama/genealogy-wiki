@@ -5,7 +5,7 @@ function process_action(PDO $db, string $action, int $personId, ?array $user): n
 {
     check_csrf();
 
-    // La demande et l'activation des anciennes invitations restent accessibles avant la connexion.
+    // La demande et le choix d'un mot de passe via une ancienne invitation restent publics.
     switch ($action) {
         case 'login':
             throttle($db, 'login', 15);
@@ -31,14 +31,14 @@ function process_action(PDO $db, string $action, int $personId, ?array $user): n
             $token = input($_POST, 'token');
             activation_account($db, $token);
             activate_account($db, $token, confirmed_password($_POST));
-            flash('Ton compte est actif. Tu peux te connecter.');
+            flash('Ton mot de passe a été enregistré. Ta demande attend la validation d’un administrateur.');
             go('connexion');
 
         case 'save-account':
-            guard($user, true);
-            $role = save_managed_account($db, $personId, $_POST);
+            require_admin($user);
+            save_managed_account($db, $personId, $_POST);
             flash($personId ? 'Le compte a été modifié.' : 'Le compte a été ajouté.');
-            go($personId === $user['id'] && $role !== 'admin' ? '' : 'comptes');
+            go('comptes');
 
         case 'approve-account':
         case 'reject-account':
@@ -49,16 +49,18 @@ function process_action(PDO $db, string $action, int $personId, ?array $user): n
 
         case 'delete-account':
             delete_managed_account($db, $personId);
-            flash('Le compte a été supprimé.');
             if ($personId === $user['id']) {
-                unset($_SESSION['user_id']);
+                $_SESSION = [];
+                session_regenerate_id(true);
+                flash('Ton compte a été supprimé.');
                 go();
             }
+            flash('Le compte a été supprimé.');
             go('comptes');
     }
 
-    // Les modifications de contenu exigent un compte actif et conservent son nom dans l'historique.
-    $editor = full_name(guard($user));
+    // Les modifications de contenu exigent un administrateur et conservent son nom dans l'historique.
+    $editor = full_name(require_admin($user));
     switch ($action) {
         case 'save-person':
             $id = save_person($db, $personId, person_fields($_POST), $editor);
@@ -107,14 +109,18 @@ function process_action(PDO $db, string $action, int $personId, ?array $user): n
             flash('Le médaillon a été enregistré.');
             go('personne', ['id' => $personId]);
 
+        case 'delete-portrait':
+            if (remove_portrait($db, $personId, id_value($_POST['media_id'] ?? null), $editor)) {
+                flash('Le médaillon a été retiré.');
+            }
+            go('personne', ['id' => $personId]);
+
         case 'delete-media':
             remove_media($db, $personId, id_value($_POST['media_id'] ?? null), $editor);
             flash('Le fichier a été supprimé.');
             go('personne', ['id' => $personId]);
 
         case 'delete-person':
-            // La suppression d'une fiche et la fusion de doublons sont réservées au mainteneur.
-            guard($user, true);
             $targetId = array_key_exists('target_id', $_POST) ? id_value($_POST['target_id']) : $personId;
             remove_person($db, $targetId, $editor);
             flash('La fiche a été supprimée.');
@@ -127,7 +133,6 @@ function process_action(PDO $db, string $action, int $personId, ?array $user): n
             go('personnes');
 
         case 'merge-person':
-            guard($user, true);
             merge_people($db, $personId, id_value($_POST['duplicate_id'] ?? null), $editor);
             flash('Les fiches ont été fusionnées.');
             go('personne', ['id' => $personId]);

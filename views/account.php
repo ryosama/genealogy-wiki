@@ -1,6 +1,6 @@
 <section class="container page-space account-page">
     <div class="panel account-panel">
-        <span class="stat-icon"><?= icon($mode === 'review' ? 'people' : 'user', 24) ?></span>
+        <span class="stat-icon"><?= icon('user', 24) ?></span>
         <h1><?= e($title) ?></h1>
 
         <?php if ($mode === 'login'): ?>
@@ -16,7 +16,7 @@
             </form>
             <p class="account-alt"><a href="<?= e(url('inscription')) ?>">Demander un compte éditeur</a></p>
         <?php elseif ($mode === 'request'): ?>
-            <p>Le mainteneur examine la demande. Une fois le compte validé, tu recevras un lien pour choisir ton mot de passe.</p>
+            <p>Choisis ton mot de passe dès maintenant. Tu pourras te connecter après validation par un administrateur.</p>
             <form class="stacked-form" action="<?= e(url('inscription')) ?>" method="post">
                 <?= csrf_field() ?>
                 <div class="form-grid">
@@ -30,28 +30,20 @@
                 <label>Adresse e-mail
                     <input type="email" name="email" autocomplete="email" maxlength="254" value="<?= e(input($_POST, 'email')) ?>" required>
                 </label>
+                <?php view('password-fields', ['passwordRequired' => true]); ?>
+                <input type="hidden" name="captcha_id" value="<?= e($challenge['id']) ?>">
+                <label hidden>Site web <input name="website" tabindex="-1" autocomplete="off"></label>
+                <label>Contrôle anti-spam · combien font <?= e($challenge['left']) ?> + <?= e($challenge['right']) ?> ?
+                    <input name="captcha" inputmode="numeric" pattern="[0-9]{1,2}" minlength="1" maxlength="2" autocomplete="off" required>
+                </label>
                 <button class="button button-primary" name="action" value="request">Envoyer la demande</button>
-            </form>
-        <?php elseif ($mode === 'review'): ?>
-            <p><strong><?= e(full_name($account)) ?></strong> (<?= e($account['email']) ?>) souhaite contribuer.</p>
-            <form class="actions" action="<?= e(url('demande', ['token' => $token])) ?>" method="post">
-                <?= csrf_field() ?>
-                <input type="hidden" name="action" value="review">
-                <input type="hidden" name="token" value="<?= e($token) ?>">
-                <button class="button button-primary" name="decision" value="approve">Valider</button>
-                <button class="button button-danger" name="decision" value="reject">Refuser</button>
             </form>
         <?php else: ?>
             <p>Choisis un mot de passe pour le compte de <?= e(full_name($account)) ?>.</p>
             <form class="stacked-form" action="<?= e(url('activation', ['token' => $token])) ?>" method="post">
                 <?= csrf_field() ?>
                 <input type="hidden" name="token" value="<?= e($token) ?>">
-                <label>Mot de passe
-                    <input type="password" name="password" autocomplete="new-password" minlength="12" maxlength="72" required>
-                </label>
-                <label>Confirmer le mot de passe
-                    <input type="password" name="confirmation" autocomplete="new-password" minlength="12" maxlength="72" required>
-                </label>
+                <?php view('password-fields', ['passwordRequired' => true]); ?>
                 <button class="button button-primary" name="action" value="activate">Activer le compte</button>
             </form>
         <?php endif ?>

@@ -1,6 +1,6 @@
 -- Schéma complet d'une base neuve. L'application l'exécute dans une transaction.
 
--- Un compte passe de pending à invited, puis à active. Seule l'empreinte du lien est conservée.
+-- Les nouveaux éditeurs passent de pending à active. invited permet encore l'activation des anciennes invitations.
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     first_name TEXT NOT NULL,
@@ -12,6 +12,18 @@ CREATE TABLE users (
     token_hash TEXT UNIQUE,
     token_expires INTEGER
 );
+
+-- Le premier administrateur reste le même, même si un compte plus ancien est ensuite promu.
+CREATE TABLE first_admin (
+    slot INTEGER PRIMARY KEY CHECK (slot = 1),
+    user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE RESTRICT
+);
+
+CREATE TRIGGER users_record_first_admin
+AFTER INSERT ON users WHEN NEW.role = 'admin' AND NEW.state = 'active'
+BEGIN
+    INSERT OR IGNORE INTO first_admin (slot, user_id) VALUES (1, NEW.id);
+END;
 
 -- search_name sert à la recherche sans accents. Les dates gardent leur libellé et une année filtrable.
 -- AUTOINCREMENT évite de réutiliser un identifiant déjà diffusé dans une URL.
@@ -89,4 +101,4 @@ CREATE TABLE auth_limits (
 );
 
 -- Version du schéma vérifiée au démarrage de l'application.
-PRAGMA user_version = 3;
+PRAGMA user_version = 4;

@@ -8,8 +8,6 @@ function load_config(string $root): array
     $config = array_replace([
         'data_dir' => $root . '/var',
         'app_url' => 'http://127.0.0.1:8000',
-        'mail_mode' => 'outbox',
-        'mail_from' => '',
         'image_tool' => 'convert',
     ], is_file($local) ? require $local : []);
 

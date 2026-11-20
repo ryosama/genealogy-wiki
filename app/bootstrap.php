@@ -6,7 +6,7 @@ define('PROJECT_ROOT', dirname(__DIR__));
 // Taille maximale d'un fichier, en octets (12 Mio).
 define('MEDIA_LIMIT', 12 * 1024 * 1024);
 // Version du schéma complet déclaré dans app/schema.sql.
-define('SCHEMA_VERSION', 3);
+define('SCHEMA_VERSION', 4);
 
 require_once __DIR__ . '/config.php';
 $config = load_config(PROJECT_ROOT);
@@ -36,13 +36,6 @@ function url(string $view = '', array $params = []): string
 function asset(string $name): string
 {
     return './assets/' . $name;
-}
-
-function absolute_url(string $view, array $params): string
-{
-    global $config;
-    // Dans un mail, le lien doit utiliser le domaine configuré par le mainteneur.
-    return rtrim($config['app_url'], '/') . '/' . substr(url($view, $params), 2);
 }
 
 function go(string $view = '', array $params = []): never
@@ -130,11 +123,14 @@ function db(): PDO
     $connection->exec('PRAGMA busy_timeout = 5000');
     $connection->exec('PRAGMA foreign_keys = ON');
     $version = (int) $connection->query('PRAGMA user_version')->fetchColumn();
-    if ($version === 0) {
+    if ($version === 0 || $version === 3) {
         $version = write_transaction($connection, static function (PDO $db): int {
             // Une autre requête a pu initialiser la base pendant l'attente du verrou.
-            if ((int) $db->query('PRAGMA user_version')->fetchColumn() === 0) {
+            $version = (int) $db->query('PRAGMA user_version')->fetchColumn();
+            if ($version === 0) {
                 $db->exec(file_get_contents(PROJECT_ROOT . '/app/schema.sql'));
+            } elseif ($version === 3) {
+                $db->exec(file_get_contents(PROJECT_ROOT . '/app/migrations/004_first_admin.sql'));
             }
             return (int) $db->query('PRAGMA user_version')->fetchColumn();
         });

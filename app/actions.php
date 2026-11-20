@@ -5,8 +5,7 @@ function process_action(PDO $db, string $action, int $personId, ?array $user): n
 {
     check_csrf();
 
-    // Les actions de compte sont accessibles avant la connexion. Les liens reçus par mail
-    // sont vérifiés dans les fonctions métier, en plus du jeton de formulaire.
+    // La demande et l'activation des anciennes invitations restent accessibles avant la connexion.
     switch ($action) {
         case 'login':
             throttle($db, 'login', 15);
@@ -23,29 +22,39 @@ function process_action(PDO $db, string $action, int $personId, ?array $user): n
 
         case 'request':
             throttle($db, 'request', 5);
+            verify_registration_challenge($_POST);
             request_account($db, $_POST);
-            flash('Si la demande peut être traitée, le mainteneur recevra un e-mail.');
+            flash('Une nouvelle demande est placée en attente de validation par un administrateur.');
             go('connexion');
-
-        case 'review':
-            $token = input($_POST, 'token');
-            $decision = input($_POST, 'decision');
-            if (!in_array($decision, ['approve', 'reject'], true)) {
-                throw new InputException('Choisis une décision.');
-            }
-            review_account($db, $token, $decision === 'approve');
-            flash($decision === 'approve' ? 'La demande a été validée.' : 'La demande a été refusée.');
-            go();
 
         case 'activate':
             $token = input($_POST, 'token');
-            account_token($db, $token, 'invited');
-            if (($_POST['password'] ?? null) !== ($_POST['confirmation'] ?? null)) {
-                throw new InputException('Les deux mots de passe doivent être identiques.');
-            }
-            activate_account($db, $token, secure_password($_POST['password'] ?? null));
+            activation_account($db, $token);
+            activate_account($db, $token, confirmed_password($_POST));
             flash('Ton compte est actif. Tu peux te connecter.');
             go('connexion');
+
+        case 'save-account':
+            guard($user, true);
+            $role = save_managed_account($db, $personId, $_POST);
+            flash($personId ? 'Le compte a été modifié.' : 'Le compte a été ajouté.');
+            go($personId === $user['id'] && $role !== 'admin' ? '' : 'comptes');
+
+        case 'approve-account':
+        case 'reject-account':
+            $approve = $action === 'approve-account';
+            decide_account_request($db, $personId, $approve);
+            flash($approve ? 'La demande de compte a été validée.' : 'La demande de compte a été refusée.');
+            go('comptes');
+
+        case 'delete-account':
+            delete_managed_account($db, $personId);
+            flash('Le compte a été supprimé.');
+            if ($personId === $user['id']) {
+                unset($_SESSION['user_id']);
+                go();
+            }
+            go('comptes');
     }
 
     // Les modifications de contenu exigent un compte actif et conservent son nom dans l'historique.

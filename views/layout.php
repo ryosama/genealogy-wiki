@@ -33,11 +33,13 @@
         <?php if ($user): ?>
             <div class="header-account">
                 <?php if ($user['role'] === 'admin'): ?>
+                    <a class="icon-button header-accounts" href="<?= e(url('comptes')) ?>" title="Gestion des comptes"
+                        aria-label="Gestion des comptes" <?= in_array($route, ['comptes', 'compte'], true) ? 'aria-current="page"' : '' ?>><?= icon('people', 19) ?></a>
                     <a class="icon-button header-history" href="<?= e(url('historique')) ?>" title="Historique général" aria-label="Historique général"><?= icon('activity', 19) ?></a>
                 <?php endif ?>
                 <form method="post" action="<?= e(url()) ?>" class="inline-form">
                     <?= csrf_field() ?>
-                    <button class="button button-light header-session" name="action" value="logout" title="Se déconnecter">
+                    <button class="button button-light header-session" name="action" value="logout" title="Se déconnecter" aria-label="Déconnexion">
                         <?= icon('logout', 18) ?><span>Déconnexion</span>
                     </button>
                 </form>

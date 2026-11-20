@@ -86,16 +86,33 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
             return ['account', 'Se connecter', ['mode' => 'login']];
 
         case 'inscription':
-            return ['account', 'Demander un compte', ['mode' => 'request']];
+            return ['account', 'Demander un compte', ['mode' => 'request', 'challenge' => registration_challenge()]];
 
-        case 'demande':
         case 'activation':
-            // Ouvrir un lien dans un mail affiche le formulaire. La décision passe ensuite par POST.
-            $pending = $route === 'demande';
             $token = input($_GET, 'token');
-            $account = account_token($db, $token, $pending ? 'pending' : 'invited');
-            return ['account', $pending ? 'Demande de compte' : 'Activer le compte', [
-                'mode' => $pending ? 'review' : 'activate', 'token' => $token, 'account' => $account,
+            return ['account', 'Activer le compte', [
+                'mode' => 'activate', 'token' => $token, 'account' => activation_account($db, $token),
+            ]];
+
+        case 'comptes':
+            guard($user, true);
+            return ['accounts', 'Gestion des comptes', ['accounts' => managed_accounts($db), 'firstAdmin' => first_admin_id($db)]];
+
+        case 'compte':
+            guard($user, true);
+            $account = $id ? editable_account($db, $id) : null;
+            $values = $account ?? ['first_name' => '', 'last_name' => '', 'email' => '', 'role' => 'admin'];
+            $canSetRole = $account === null || $account['state'] === 'active';
+            if ($common['error'] && input($_POST, 'action') === 'save-account') {
+                foreach (['first_name', 'last_name', 'email'] as $field) {
+                    $values[$field] = input($_POST, $field);
+                }
+                if ($canSetRole) {
+                    $values['role'] = input($_POST, 'role');
+                }
+            }
+            return ['account-edit', $id ? 'Modifier le compte' : 'Ajouter un compte', [
+                'id' => $id, 'account' => $account, 'values' => $values, 'canSetRole' => $canSetRole,
             ]];
 
         default:

@@ -5,6 +5,7 @@ declare(strict_types=1);
 const RELATIVE_PRESETS = [
     'partners' => [
         'partner' => ['title' => 'Créer un conjoint', 'kind' => 'union'],
+        'spouse' => ['title' => 'Créer un mari ou une femme', 'kind' => 'marriage'],
     ],
     'parents' => [
         'father' => ['title' => 'Créer un père', 'sex' => 'male', 'kind' => 'biological'],

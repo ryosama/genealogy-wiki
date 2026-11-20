@@ -69,6 +69,7 @@ h3 { font-size: 1.23rem; }
 .primary-nav a[aria-current]::after { content: ''; position: absolute; bottom: 0; height: 2px; background: #5c765e; inset-inline: 0; }
 .header-session, .header-account { justify-self: end; }
 .header-account { display: flex; align-items: center; gap: 6px; }
+.header-accounts[aria-current] { background: var(--pale); }
 .inline-form { display: inline-flex; margin: 0; }
 .site-footer { border-top: 1px solid var(--line); background: #f3f3eb; color: var(--muted); }
 .footer-inner { min-height: 92px; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
@@ -310,6 +311,16 @@ h3 { font-size: 1.23rem; }
 .account-panel > p { color: var(--muted); }
 .account-alt { margin-top: 17px; font-size: .94rem; }
 .account-alt a { color: var(--forest); text-decoration: underline; text-underline-offset: 3px; }
+.accounts-page { max-width: 900px; }
+.accounts-section { padding: clamp(15px, 3vw, 25px); }
+.accounts-section + .accounts-section { margin-top: 18px; }
+.accounts-section h2 { margin-bottom: 12px; }
+.managed-accounts { list-style: none; margin: 0; padding: 0; }
+.managed-account { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; padding: 12px 0; }
+.managed-account + .managed-account { border-top: 1px solid var(--line); }
+.managed-account-identity { display: grid; min-width: 0; overflow-wrap: anywhere; }
+.managed-account-state { color: var(--muted); font-size: .9rem; }
+.managed-account-actions form { margin: 0; }
 .stacked-form { display: grid; gap: 13px; }
 .stacked-form label, dialog label { display: grid; gap: 5px; font-weight: 630; font-size: .9rem; color: #405040; }
 .stacked-form input, .stacked-form select, .stacked-form textarea, dialog input { font-weight: 450; }
@@ -547,6 +558,11 @@ dialog h2 { margin: 0 34px 16px 0; }
     .directory-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .graph-heading { align-items: flex-start; flex-direction: column; }
     .graph-actions { justify-content: flex-start; }
+}
+
+@media (max-width: 380px) {
+    /* Garder les raccourcis de l'administration sur une seule ligne dans l'en-tête. */
+    .header-account .header-session span { display: none; }
 }
 
 @media (max-width: 660px) {

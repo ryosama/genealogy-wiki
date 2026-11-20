@@ -4,10 +4,12 @@
         <a role="menuitem" tabindex="-1" href="<?= e(url('personne')) ?>" data-person-link><?= icon('user', 16) ?> Ouvrir la fiche</a>
         <?php if ($user): ?>
             <a role="menuitem" tabindex="-1" href="<?= e(url('edition')) ?>" data-person-link><?= icon('edit', 16) ?> Modifier la fiche</a>
-            <button type="button" role="menuitem" tabindex="-1" data-menu-action="create-relative"
-                data-preset="partner" data-relative-group="partners">
-                <?= icon('link', 16) ?> <?= e(RELATIVE_PRESETS['partners']['partner']['title']) ?>
-            </button>
+            <?php foreach (RELATIVE_PRESETS['partners'] as $key => $preset): ?>
+                <button type="button" role="menuitem" tabindex="-1" data-menu-action="create-relative"
+                    data-preset="<?= e($key) ?>" data-relative-group="partners">
+                    <?= icon('link', 16) ?> <?= e($preset['title']) ?>
+                </button>
+            <?php endforeach ?>
             <?php foreach (['parents' => 'Ascendants', 'children' => 'Descendants', 'siblings' => 'Frères et sœurs'] as $group => $label): ?>
                 <div class="graph-menu-group" role="group" aria-label="<?= e($label) ?>">
                     <p class="graph-menu-label" aria-hidden="true"><?= e($label) ?></p>

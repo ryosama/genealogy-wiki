@@ -20,7 +20,7 @@ Sur Debian et Ubuntu, si la commande `php` manque, installer d’abord le paquet
 php bin/console.php check
 ~~~
 
-Le rapport liste les extensions PHP, les formats annoncés par ImageMagick et les prérequis du mode d’envoi des courriels configuré. Il affiche les installations ou réglages proposés et renvoie `1` quand un contrôle échoue. Sous Debian et Ubuntu, il propose une commande `sudo apt install` lorsque des paquets peuvent résoudre le problème.
+Le rapport liste les extensions PHP et les formats annoncés par ImageMagick. Il affiche les installations ou réglages proposés et renvoie `1` quand un contrôle échoue. Sous Debian et Ubuntu, il propose une commande `sudo apt install` lorsque des paquets peuvent résoudre le problème.
 
 Pour une installation Nginx, vérifier aussi le serveur, la version de PHP-FPM et ses extensions.
 
@@ -47,7 +47,7 @@ Ouvrir [Racines en local](http://127.0.0.1:8000). La démo crée 26 personnes fi
 - Une famille correspond à un groupe distinct de parents qui ont au moins un enfant renseigné. Plusieurs enfants du même groupe comptent pour une seule famille. Les frères et sœurs sont déduits des parents communs.
 - L’arbre affiche deux générations de part et d’autre de la personne centrale au départ. Les boutons « Ascendants » et « Descendants » ajoutent des générations. Chaque case ouvre une fiche. On peut zoomer, déplacer la vue et déplacer temporairement les cases. La mise en page privilégie les liens lisibles et réduit les croisements.
 - Dans l’arbre, l’annuaire et l’activité récente, les cartes sont roses pour les femmes, bleues pour les hommes et neutres quand le sexe reste à renseigner. Le symbole apparaît sous l’avatar. Le champ « Sexe » se modifie sur la fiche.
-- Le symbole du sexe apparaît aussi devant les prénoms dans la section « Relations ». Le menu de l’arbre propose « Créer un conjoint » et présélectionne le sexe opposé quand le sexe de la personne de référence est connu. Le choix est modifiable. Le lien créé est une union.
+- Le symbole du sexe apparaît aussi devant les prénoms dans la section « Relations ». Le menu de l’arbre propose « Créer un conjoint » pour une union et « Créer un mari ou une femme » pour un mariage. Le sexe opposé est présélectionné quand le sexe de la personne de référence est connu. Le choix est modifiable.
 - Le clic droit, l’appui prolongé ou `Maj` + `F10` ouvrent le menu de la case ou du lien sélectionné. Les éditeurs peuvent y modifier un lien ou créer un père, une mère, un enfant biologique ou adoptif, un frère ou une sœur. Créer un membre de la fratrie reprend les filiations connues. Si les parents sont inconnus, le site enregistre un lien de fratrie direct. Le mainteneur peut aussi supprimer une fiche depuis l’arbre.
 - Les éditeurs modifient les liens en cliquant dessus ou en passant par la section « Relations ». Pour ajouter un lien, ils peuvent choisir les deux personnes dans le formulaire ou sélectionner les deux cases dans le graphique. Une année de fin signale une union terminée.
 - La fiche et l’arbre s’impriment séparément. Le menu de l’arbre propose la vue affichée, la branche ascendante intégrale, la branche descendante intégrale et les deux branches intégrales.
@@ -58,7 +58,7 @@ Ouvrir [Racines en local](http://127.0.0.1:8000). La démo crée 26 personnes fi
 
 ![Arbre généalogique de démonstration](docs/screenshots/arbre.webp)
 
-### Comptes éditeurs
+### Comptes et demandes d’édition
 
 Créer le compte du mainteneur depuis le terminal. La commande demande le mot de passe et le stocke sous forme de hachage salé.
 
@@ -66,17 +66,18 @@ Créer le compte du mainteneur depuis le terminal. La commande demande le mot de
 php bin/console.php admin 'Prénom' 'Nom' 'mainteneur@example.test'
 ~~~
 
-Après une demande de compte, le mainteneur reçoit un lien à usage unique qui ouvre les boutons de décision. En cas de validation, la personne reçoit un second lien pour choisir son mot de passe. Les liens expirent après trois jours et les comptes validés ont accès à l’édition de toutes les fiches.
+La personne choisit et confirme son mot de passe dans le formulaire de demande, puis répond à un CAPTCHA de calcul. Le compte est placé en attente. Après validation, la personne se connecte avec l’adresse et le mot de passe choisis dans le formulaire.
 
-Avec la configuration locale par défaut, les messages sont enregistrés dans `var/outbox/` au format `.eml`. Ouvrir le dernier message destiné au mainteneur, puis celui destiné à l’éditeur pour tester le parcours sur sa machine.
+Le lien **Gestion des comptes** apparaît dans l’en-tête pour les administrateurs. Cette page permet de valider ou de refuser les demandes, ainsi que d’ajouter, de modifier ou de supprimer des comptes. Le premier administrateur est protégé. Le traitement des demandes se fait entièrement depuis cette page.
+
+Pour une ancienne demande sans mot de passe, un administrateur peut en définir un depuis la liste avant de valider le compte. Les anciens liens d’activation déjà envoyés restent utilisables jusqu’à leur expiration.
 
 ## Configuration de production
 
 1. Copier `config/local.example.php` vers `config/local.php`. Régler l’URL HTTPS publique et le chemin du répertoire de données. Choisir `magick` si la commande d’ImageMagick 7 est disponible.
 2. Adapter [le fichier d’exemple Nginx](config/nginx.conf.example) à son domaine, son répertoire `public/` et sa version de PHP-FPM. Configurer HTTPS sur le serveur et fixer `upload_max_filesize` à `12M` et `post_max_size` à `16M` côté PHP-FPM.
 3. Donner à l’utilisateur PHP-FPM l’accès en écriture au répertoire de données et en lecture au code. Exécuter les commandes `init` et `admin` avec ce même accès. Les variables d’environnement `GENEALOGY_DATA_DIR` et `GENEALOGY_APP_URL` permettent de lancer une instance séparée.
-4. Quand un agent d’envoi est disponible, régler `mail_mode` sur `mail` et renseigner `mail_from`. PHP transmet les messages à l’agent d’envoi du serveur ou à son relais SMTP. Le mode `outbox` garde les messages sur le serveur.
-5. Sauvegarder SQLite avec l’outil de sauvegarde de SQLite ou à l’arrêt du site. La base contient les fiches, les comptes, l’historique et les médias.
+4. Sauvegarder SQLite avec l’outil de sauvegarde de SQLite ou à l’arrêt du site. La base contient les fiches, les comptes, l’historique et les médias.
 
 Les données d’exécution, la configuration locale, les archives d’origine et le cahier des charges local sont ignorés par Git. Le dossier `incoming/` peut accueillir les sources privées à traiter séparément.
 

@@ -10,6 +10,8 @@ require PROJECT_ROOT . '/app/content.php';
 require PROJECT_ROOT . '/app/people.php';
 require PROJECT_ROOT . '/app/relatives.php';
 require PROJECT_ROOT . '/app/accounts.php';
+require PROJECT_ROOT . '/app/account_management.php';
+require PROJECT_ROOT . '/app/captcha.php';
 require PROJECT_ROOT . '/app/media.php';
 require PROJECT_ROOT . '/app/portraits.php';
 require PROJECT_ROOT . '/app/actions.php';

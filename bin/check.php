@@ -145,26 +145,6 @@ function check_server(string $aptDefault): array
     return array_merge($checks, check_php('PHP-FPM', 'fpm', $match[1], $modules, $aptDefault));
 }
 
-function check_mail(array $config): array
-{
-    if ($config['mail_mode'] === 'outbox') {
-        return [[true, 'Courriels · boîte d’envoi locale (outbox)']];
-    }
-    if ($config['mail_mode'] !== 'mail') {
-        return [[false, 'Courriels · mode inconnu', [], 'Choisir outbox ou mail dans config/local.php.']];
-    }
-
-    preg_match('/^\s*(?:"([^"]+)"|\'([^\']+)\'|(\S+))/', (string) ini_get('sendmail_path'), $path);
-    $executable = ($path[1] ?? '') ?: (($path[2] ?? '') ?: ($path[3] ?? ''));
-    return [
-        [function_exists('mail'), 'PHP CLI · fonction mail()', [], 'Activer mail() dans le php.ini utilisé.'],
-        [check_executable($executable, true) !== null, 'Courriels · agent d’envoi configuré pour le CLI', ['msmtp-mta'],
-            'Configurer le relais de messagerie et sendmail_path, ou choisir mail_mode=outbox.'],
-        [function_exists('filter_var') && filter_var($config['mail_from'], FILTER_VALIDATE_EMAIL) !== false, 'Courriels · adresse d’expédition', [],
-            'Renseigner une adresse valide dans mail_from (config/local.php).'],
-    ];
-}
-
 function check_installation(array $packages, ?string $aptCache): void
 {
     if (!$packages) {
@@ -215,7 +195,6 @@ function check_requirements(array $config, bool $production): int
     } else {
         $checks[] = [null, 'ImageMagick · vérification des formats à relancer après activation de proc_open()'];
     }
-    $checks = array_merge($checks, check_mail($config));
     if ($production) {
         $checks = array_merge($checks, check_server($aptDefault));
     }
@@ -236,7 +215,7 @@ function check_requirements(array $config, bool $production): int
     check_installation($packages, $aptCache);
     if ($production) {
         echo "\nLe contrôle PHP-FPM porte sur le binaire installé et ses modules. "
-            . "Vérifier aussi le pool utilisé par Nginx et ses réglages de téléversement et de courriels.\n";
+            . "Vérifier aussi le pool utilisé par Nginx et ses réglages de téléversement.\n";
     }
     echo "\nLes fichiers PHP et JavaScript du dépôt sont prêts à l’emploi.\n";
     echo $missing ? "$missing point(s) à corriger.\n" : "Tous les prérequis vérifiés sont présents.\n";

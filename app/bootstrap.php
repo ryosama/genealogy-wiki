@@ -8,22 +8,8 @@ define('MEDIA_LIMIT', 12 * 1024 * 1024);
 // Version du schéma complet déclaré dans app/schema.sql.
 define('SCHEMA_VERSION', 3);
 
-// Les valeurs de config/local.php remplacent les réglages destinés au développement.
-$config = array_replace([
-    'data_dir' => PROJECT_ROOT . '/var',
-    'app_url' => 'http://127.0.0.1:8000',
-    'mail_mode' => 'outbox',
-    'mail_from' => '',
-    'image_tool' => 'convert',
-], is_file(PROJECT_ROOT . '/config/local.php') ? require PROJECT_ROOT . '/config/local.php' : []);
-
-// Ces variables permettent de lancer une instance de test avec sa propre base et ses propres liens de validation.
-if (getenv('GENEALOGY_DATA_DIR')) {
-    $config['data_dir'] = getenv('GENEALOGY_DATA_DIR');
-}
-if (getenv('GENEALOGY_APP_URL')) {
-    $config['app_url'] = getenv('GENEALOGY_APP_URL');
-}
+require_once __DIR__ . '/config.php';
+$config = load_config(PROJECT_ROOT);
 
 // SQLite conserve les horodatages en UTC. Ce fuseau sert à les afficher sur le site.
 date_default_timezone_set('Europe/Paris');

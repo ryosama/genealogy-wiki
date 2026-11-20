@@ -1,18 +1,31 @@
 <?php
 declare(strict_types=1);
 
-require dirname(__DIR__) . '/app/bootstrap.php';
-require PROJECT_ROOT . '/app/content.php';
-require PROJECT_ROOT . '/app/people.php';
-require PROJECT_ROOT . '/app/accounts.php';
-require PROJECT_ROOT . '/app/media.php';
-
 if (PHP_SAPI !== 'cli') {
     exit(1);
 }
 
 try {
     $command = $argv[1] ?? 'help';
+    if ($command === 'check') {
+        $options = array_slice($argv, 2);
+        if ($options !== [] && $options !== ['--production']) {
+            fwrite(STDERR, "Usage php bin/console.php check [--production]\n");
+            exit(1);
+        }
+        // Charger uniquement la configuration pour diagnostiquer même un PHP incomplet.
+        define('PROJECT_ROOT', dirname(__DIR__));
+        require PROJECT_ROOT . '/app/config.php';
+        require __DIR__ . '/check.php';
+        exit(check_requirements(load_config(PROJECT_ROOT), $options !== []));
+    }
+
+    require dirname(__DIR__) . '/app/bootstrap.php';
+    require PROJECT_ROOT . '/app/content.php';
+    require PROJECT_ROOT . '/app/people.php';
+    require PROJECT_ROOT . '/app/accounts.php';
+    require PROJECT_ROOT . '/app/media.php';
+
     if ($command === 'init') {
         db();
         fwrite(STDOUT, "Base SQLite prête.\n");
@@ -49,6 +62,7 @@ try {
         fwrite(STDOUT, "Compte du mainteneur créé.\n");
     } else {
         fwrite($command === 'help' ? STDOUT : STDERR, "php bin/console.php init\n"
+            . "php bin/console.php check [--production]\n"
             . "php bin/console.php demo\n"
             . "php bin/console.php admin 'Prénom' 'Nom' 'adresse@example.test'\n");
         exit($command === 'help' ? 0 : 1);

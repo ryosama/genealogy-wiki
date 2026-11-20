@@ -12,6 +12,26 @@ Prérequis sous Linux
 - ImageMagick avec les décodeurs JPEG, PNG, WebP, AVIF, HEIC et BMP, et l’encodeur WebP. Vérifier leur présence avec `convert -list format` ou `magick -list format`.
 - SQLite est fourni par l’extension PHP. Le projet utilise directement le PHP, le CSS et le JavaScript du dépôt.
 
+### Vérifier les prérequis
+
+Sur Debian et Ubuntu, si la commande `php` manque, installer d’abord le paquet `php-cli` et vérifier avec `php -v` que la version fournie est au moins 8.3. Lancer ensuite le diagnostic depuis le projet.
+
+~~~sh
+php bin/console.php check
+~~~
+
+Le rapport liste les extensions PHP, les formats annoncés par ImageMagick et les prérequis du mode d’envoi des courriels configuré. Il affiche les installations ou réglages proposés et renvoie `1` quand un contrôle échoue. Sous Debian et Ubuntu, il propose une commande `sudo apt install` lorsque des paquets peuvent résoudre le problème.
+
+Pour une installation Nginx, vérifier aussi le serveur, la version de PHP-FPM et ses extensions.
+
+~~~sh
+php bin/console.php check --production
+~~~
+
+Le diagnostic examine le binaire PHP-FPM installé. Les paramètres du pool utilisé par Nginx se vérifient dans la configuration de production.
+
+### Lancer la démonstration
+
 Depuis ce dossier, créer une base de démonstration et lancer le serveur PHP.
 
 ~~~sh
@@ -65,7 +85,7 @@ Les données d’exécution, la configuration locale, les archives d’origine e
 - `public/` contient le point d’entrée PHP et les fichiers accessibles au navigateur.
 - `app/` contient les règles métier, le schéma SQLite et les données fictives du mode démo.
 - `views/` contient les gabarits HTML.
-- `bin/console.php` initialise la base et crée le compte du mainteneur.
+- `bin/console.php` vérifie les prérequis, initialise la base et crée le compte du mainteneur.
 
 Les icônes de l’interface sont une sélection d’icônes SVG de Font Awesome Free 7.3.1 par Fonticons, Inc., distribuées sous licence CC BY 4.0. Les tracés d’origine sont regroupés dans `public/assets/fontawesome.svg` et servis avec le site. [Font Awesome Free](https://fontawesome.com/license/free), [licence CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 

@@ -7,6 +7,7 @@ ini_set('log_errors', '1');
 // Le point d'entrée HTTP charge le socle, les règles métier et les contrôleurs de pages.
 require dirname(__DIR__) . '/app/bootstrap.php';
 require PROJECT_ROOT . '/app/content.php';
+require PROJECT_ROOT . '/app/todo.php';
 require PROJECT_ROOT . '/app/people.php';
 require PROJECT_ROOT . '/app/relatives.php';
 require PROJECT_ROOT . '/app/accounts.php';

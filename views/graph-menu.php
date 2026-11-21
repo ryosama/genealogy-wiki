@@ -54,8 +54,8 @@ if ($user): ?>
             <?= csrf_field() ?>
             <input type="hidden" name="reference_id">
             <input type="hidden" name="preset">
-            <label>Prénom <input name="first_name" required maxlength="100"></label>
-            <label>Nom <input name="last_name" required maxlength="100"></label>
+            <label>Prénom <input name="first_name" maxlength="100"></label>
+            <label>Nom de famille <input name="last_name" maxlength="100"></label>
             <label data-relative-sex hidden>Sexe
                 <select name="sex" disabled>
                     <option value="">Non renseigné</option>

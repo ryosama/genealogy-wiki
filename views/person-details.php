@@ -10,14 +10,15 @@ if ($canEdit): ?>
     <?php if ($canEdit): ?>
         <div class="profile-field-editor">
             <div class="stacked-form form-grid">
-                <?php foreach (['first_name' => 'Prénom', 'last_name' => 'Nom'] as $key => $label): ?>
+                <?php foreach (['first_name' => 'Prénom', 'last_name' => 'Nom de famille'] as $key => $label): ?>
                     <?php $value = $values[$key] ?? ''; ?>
                     <label><?= e($label) ?>
-                        <input name="<?= e($key) ?>" value="<?= e($key === 'last_name' ? family_name($value) : $value) ?>" maxlength="100" required>
+                        <input id="person-<?= e($key) ?>" data-task-field name="<?= e($key) ?>"
+                            value="<?= e($key === 'last_name' ? family_name($value) : $value) ?>" maxlength="100">
                     </label>
                 <?php endforeach ?>
                 <label>Sexe
-                    <select name="sex">
+                    <select id="person-sex" data-task-field name="sex">
                         <option value="">Non renseigné</option>
                         <?php foreach (SEX_LABELS as $value => $label): ?>
                             <option value="<?= e($value) ?>" <?= ($values['sex'] ?? '') === $value ? 'selected' : '' ?>><?= e($label) ?></option>
@@ -25,16 +26,34 @@ if ($canEdit): ?>
                     </select>
                 </label>
                 <label>Lieu de vie
-                    <input name="residence" value="<?= e($values['residence'] ?? '') ?>" maxlength="180">
+                    <input id="person-residence" data-task-field name="residence" value="<?= e($values['residence'] ?? '') ?>" maxlength="180">
                 </label>
-                <?php foreach (['birth' => 'de naissance', 'death' => 'de décès'] as $key => $label): ?>
-                    <label>Date <?= e($label) ?>
-                        <input name="<?= e($key) ?>_date" value="<?= e($values[$key . '_date'] ?? '') ?>" placeholder="15/06/1880, 1880 ou vers 1880" maxlength="32">
+                <label>Date de naissance
+                    <input id="person-birth_date" data-task-field name="birth_date" value="<?= e($values['birth_date'] ?? '') ?>"
+                        placeholder="15/06/1880, 1880 ou vers 1880" maxlength="32">
+                </label>
+                <label>Lieu de naissance
+                    <input id="person-birth_place" data-task-field name="birth_place" value="<?= e($values['birth_place'] ?? '') ?>" maxlength="180">
+                </label>
+                <div class="person-death">
+                    <?php // Le champ masqué transmet 0 si la case est décochée, même sans JavaScript. ?>
+                    <input type="hidden" name="deceased" value="0">
+                    <label class="person-deceased-choice">
+                        <input type="checkbox" name="deceased" value="1" <?= !empty($values['deceased']) ? 'checked' : '' ?>> Décédée
                     </label>
-                    <label>Lieu <?= e($label) ?>
-                        <input name="<?= e($key) ?>_place" value="<?= e($values[$key . '_place'] ?? '') ?>" maxlength="180">
-                    </label>
-                <?php endforeach ?>
+                    <div class="form-grid person-death-fields">
+                        <label>Date de décès
+                            <input id="person-death_date" data-task-field name="death_date" value="<?= e($values['death_date'] ?? '') ?>"
+                                placeholder="15/06/1880, 1880 ou vers 1880" maxlength="32">
+                        </label>
+                        <label>Lieu de décès
+                            <input id="person-death_place" data-task-field name="death_place" value="<?= e($values['death_place'] ?? '') ?>" maxlength="180">
+                        </label>
+                    </div>
+                    <?php if (!empty($person['death_date']) || !empty($person['death_place'])): ?>
+                        <p class="muted person-death-clear">Enregistrer la fiche comme vivante efface les informations de décès de la fiche.</p>
+                    <?php endif ?>
+                </div>
             </div>
             <?php view('rich-text', ['field' => 'biography', 'labelId' => 'bio-heading', 'html' => $values['biography'] ?? '']); ?>
         </div>
@@ -46,7 +65,8 @@ if ($canEdit): ?>
                 <?php if ($person['sex']): ?>
                     <div><dt>Sexe</dt><dd><?= e(SEX_LABELS[$person['sex']]) ?></dd></div>
                 <?php endif ?>
-                <?php foreach (['birth' => 'Naissance', 'death' => 'Décès'] as $key => $label): ?>
+                <?php $events = $person['deceased'] ? ['birth' => 'Naissance', 'death' => 'Décès'] : ['birth' => 'Naissance']; ?>
+                <?php foreach ($events as $key => $label): ?>
                     <?php $date = $person[$key . '_date']; $place = $person[$key . '_place']; ?>
                     <div><dt><?= e($label) ?></dt><dd><?= e(implode(' · ', array_filter([$date, $place])) ?: 'Non renseigné') ?></dd></div>
                 <?php endforeach ?>

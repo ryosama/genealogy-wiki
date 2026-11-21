@@ -41,7 +41,16 @@ CREATE TABLE people (
     residence TEXT NOT NULL,
     biography TEXT NOT NULL,
     notable_facts TEXT NOT NULL,
-    sex TEXT CHECK (sex IN ('male', 'female'))
+    sex TEXT CHECK (sex IN ('male', 'female')),
+    deceased INTEGER NOT NULL DEFAULT 0 CHECK (deceased IN (0, 1))
+);
+
+-- Une tâche ignorée reste mémorisée pour que les prochains balayages ne la recréent pas.
+CREATE TABLE person_tasks (
+    person_id INTEGER NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+    field TEXT NOT NULL,
+    ignored INTEGER NOT NULL DEFAULT 0 CHECK (ignored IN (0, 1)),
+    PRIMARY KEY (person_id, field)
 );
 
 -- a_id est le parent et b_id l'enfant dans une filiation. Pour une union ou une fratrie, le plus petit identifiant vient en premier.
@@ -101,4 +110,4 @@ CREATE TABLE auth_limits (
 );
 
 -- Version du schéma vérifiée au démarrage de l'application.
-PRAGMA user_version = 5;
+PRAGMA user_version = 6;

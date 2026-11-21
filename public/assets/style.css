@@ -70,7 +70,7 @@ h3 { font-size: 1.23rem; }
 .primary-nav a[aria-current]::after { content: ''; position: absolute; bottom: 0; height: 2px; background: #5c765e; inset-inline: 0; }
 .header-session, .header-account { justify-self: end; }
 .header-account { display: flex; align-items: center; gap: 6px; }
-.header-accounts[aria-current] { background: var(--pale); }
+.header-accounts[aria-current], .header-todo[aria-current] { background: var(--pale); }
 .inline-form { display: inline-flex; margin: 0; }
 .site-footer { border-top: 1px solid var(--line); background: #f3f3eb; color: var(--muted); }
 .footer-inner { min-height: 92px; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
@@ -282,6 +282,14 @@ h3 { font-size: 1.23rem; }
 .profile-create .profile-grid { grid-template-columns: minmax(0, 1fr); }
 .profile-column { display: flex; flex-direction: column; gap: 16px; }
 .profile-field-editor .form-grid { margin-bottom: 14px; }
+.profile-field-editor .person-death-fields { margin: 9px 0 0; }
+.person-death { grid-column: 1 / -1; }
+.stacked-form .person-deceased-choice { display: flex; align-items: center; gap: 8px; width: fit-content; }
+.person-deceased-choice input { width: 18px; min-height: 18px; margin: 0; padding: 0; accent-color: var(--forest); }
+.person-death:not(:has(input[type="checkbox"]:checked)) .person-death-fields,
+.person-death:has(input[type="checkbox"]:checked) .person-death-clear { display: none; }
+.person-death-clear { margin-top: 8px; font-size: .87rem; }
+[data-task-field] { scroll-margin-block: 16px; }
 .profile-print-only { display: none; }
 .profile-footer-actions { margin-top: 22px; }
 .content-panel, .form-panel { padding: 21px; }
@@ -338,6 +346,13 @@ h3 { font-size: 1.23rem; }
 .history-row dd { margin: 0 0 5px; }
 
 .edit-page { max-width: 880px; }
+.todo-people { display: grid; gap: 15px; }
+.todo-person h2 { font-size: 1.35rem; }
+.todo-fields { list-style: none; padding: 0; margin: 0; }
+.todo-fields li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 0; }
+.todo-fields li + li { border-top: 1px solid var(--line); }
+.todo-fields li .text-link { overflow-wrap: anywhere; }
+.todo-fields li form { flex: none; }
 .account-panel { max-width: 470px; margin: 5px auto; padding: clamp(20px, 5vw, 37px); }
 .account-panel h1 { font-size: clamp(2.15rem, 4vw, 2.8rem); margin: 13px 0 14px; }
 .account-panel > p { color: var(--muted); }
@@ -631,6 +646,9 @@ dialog h2 { margin: 0 34px 16px 0; }
 
 @media (max-width: 380px) {
     /* Garder les raccourcis de l'administration sur une seule ligne dans l'en-tête. */
+    .header-account { gap: 3px; }
+    .header-account .icon-button { width: 31px; }
+    .header-account .header-session { padding-inline: .35rem; }
     .header-account .header-session span { display: none; }
 }
 

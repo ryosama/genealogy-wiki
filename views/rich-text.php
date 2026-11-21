@@ -1,4 +1,4 @@
-<div data-rich-editor>
+<div id="person-<?= e($field) ?>" data-rich-editor data-task-field>
     <?php // site.js active la zone visuelle et synchronise le textarea soumis avec la fiche. ?>
     <div class="editor-toolbar" role="group" aria-label="Mise en forme" hidden>
         <button type="button" data-command="bold" title="Gras" aria-label="Gras"><strong>G</strong></button>

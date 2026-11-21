@@ -22,6 +22,7 @@ try {
 
     require dirname(__DIR__) . '/app/bootstrap.php';
     require PROJECT_ROOT . '/app/content.php';
+    require PROJECT_ROOT . '/app/todo.php';
     require PROJECT_ROOT . '/app/people.php';
     require PROJECT_ROOT . '/app/accounts.php';
     require PROJECT_ROOT . '/app/media.php';
@@ -29,6 +30,10 @@ try {
     if ($command === 'init') {
         db();
         fwrite(STDOUT, "Base SQLite prête.\n");
+    } elseif ($command === 'todo' && $argc === 2) {
+        $report = scan_person_tasks(db());
+        fwrite(STDOUT, sprintf("%d fiche(s) analysée(s), %d personne(s) sans lien. %d tâche(s) ajoutée(s), %d en attente.\n",
+            $report['people'], $report['isolated'], $report['added'], $report['pending']));
     } elseif ($command === 'demo') {
         require PROJECT_ROOT . '/app/demo.php';
         seed_demo(db());
@@ -64,6 +69,7 @@ try {
         fwrite($command === 'help' ? STDOUT : STDERR, "php bin/console.php init\n"
             . "php bin/console.php check [--production]\n"
             . "php bin/console.php demo\n"
+            . "php bin/console.php todo\n"
             . "php bin/console.php admin 'Prénom' 'Nom' 'adresse@example.test'\n");
         exit($command === 'help' ? 0 : 1);
     }

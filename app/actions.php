@@ -62,6 +62,11 @@ function process_action(PDO $db, string $action, int $personId, ?array $user): n
     // Les modifications de contenu exigent un administrateur et conservent son nom dans l'historique.
     $editor = full_name(require_admin($user));
     switch ($action) {
+        case 'ignore-task':
+            ignore_person_task($db, $personId, input($_POST, 'field'));
+            flash('La tâche a été ignorée.');
+            go('a-renseigner');
+
         case 'save-person':
             $id = save_person($db, $personId, person_fields($_POST), $editor);
             flash($personId ? 'La fiche a été enregistrée.' : 'La fiche a été créée.');

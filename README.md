@@ -44,6 +44,8 @@ Ouvrir [Racines en local](http://127.0.0.1:8000). La démo crée 26 personnes fi
 ## Consultation et édition
 
 - Les administrateurs modifient directement les champs de la fiche, la biographie et les faits notables. Les boutons « Enregistrer les modifications » en haut et en bas valident la saisie et enregistrent tous les champs de la fiche en une fois.
+- Une fiche peut être créée avec des champs vides. Les informations manquantes et les personnes sans lien apparaissent dans **À renseigner ultérieurement**, accessible aux administrateurs dans l’en-tête. Chaque tâche ouvre le champ correspondant ou le bouton d’ajout de relation. Cliquer sur **Ignorer** écarte la tâche des prochains balayages.
+- La case **Décédée** affiche la date et le lieu de décès. Ces champs entrent dans les tâches uniquement pour les personnes marquées décédées. Enregistrer une fiche comme vivante retire ses informations de décès de la fiche et garde les anciennes valeurs dans l’historique.
 - La recherche combine le nom ou prénom et l’année de naissance ou de décès. Les dates peuvent être complètes, réduites à l’année, qualifiées par « vers », « avant » ou « après », ou laissées vides.
 - Une famille correspond à un groupe distinct de parents qui ont au moins un enfant renseigné. Plusieurs enfants du même groupe comptent pour une seule famille. Les frères et sœurs sont déduits des parents communs.
 - L’arbre affiche deux générations de part et d’autre de la personne centrale au départ. Les boutons « Ascendants » et « Descendants » ajoutent des générations. Chaque case ouvre une fiche. On peut zoomer, déplacer la vue et déplacer temporairement les cases. La mise en page privilégie les liens lisibles et réduit les croisements.
@@ -73,6 +75,14 @@ La personne choisit et confirme son mot de passe dans le formulaire de demande, 
 Le lien **Gestion des comptes** apparaît dans l’en-tête pour les administrateurs. Cette page permet de valider ou de refuser les demandes, ainsi que d’ajouter, de modifier ou de supprimer des comptes. Pour le premier compte administrateur, seul son titulaire peut le modifier ou le supprimer. Si le dernier administrateur se supprime, la commande `php bin/console.php admin` permet de créer un nouveau compte.
 
 La mise à jour applique les migrations SQLite à la première ouverture de la base. Pour les appliquer depuis le terminal, lancer `php bin/console.php init`. Les anciens comptes éditeurs actifs repassent en attente de validation et les administrateurs existants devront se reconnecter. Un ancien lien d’invitation valide permet encore de choisir un mot de passe avant validation. Un administrateur peut aussi définir ce mot de passe depuis la gestion des comptes.
+
+### Balayer les fiches existantes
+
+~~~sh
+php bin/console.php todo
+~~~
+
+La commande complète la liste pour les fiches existantes et indique le nombre de personnes sans lien et de tâches ajoutées. Tu peux la relancer. Les tâches déjà présentes et les choix d’ignorer un champ sont conservés.
 
 ## Configuration de production
 

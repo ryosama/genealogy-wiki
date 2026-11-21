@@ -34,6 +34,8 @@
         <?php // $user contient l'administrateur connecté. Pour un visiteur, sa valeur est nulle et le lien de connexion s'affiche.
         if ($user): ?>
             <div class="header-account">
+                <a class="icon-button header-todo" href="<?= e(url('a-renseigner')) ?>" title="À renseigner ultérieurement"
+                    aria-label="À renseigner ultérieurement" <?= $route === 'a-renseigner' ? 'aria-current="page"' : '' ?>><?= icon('check', 19) ?></a>
                 <a class="icon-button header-accounts" href="<?= e(url('comptes')) ?>" title="Gestion des comptes"
                     aria-label="Gestion des comptes" <?= in_array($route, ['comptes', 'compte'], true) ? 'aria-current="page"' : '' ?>><?= icon('people', 19) ?></a>
                 <a class="icon-button header-history" href="<?= e(url('historique')) ?>" title="Historique général" aria-label="Historique général"><?= icon('activity', 19) ?></a>

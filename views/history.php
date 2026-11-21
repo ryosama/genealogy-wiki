@@ -19,6 +19,7 @@
                             <dl>
                                 <?php foreach (array_intersect_key($details, history_labels()) as $key => $value): ?>
                                     <?php $display = match (true) {
+                                        $key === 'deceased' => (int) $value ? 'Oui' : 'Non',
                                         !is_string($value) || trim($value) === '' => 'Non renseigné',
                                         $key === 'last_name' => family_name($value),
                                         $key === 'sex' => SEX_LABELS[$value] ?? 'Non renseigné',

@@ -138,7 +138,10 @@ function insert_person(PDO $db, array $fields, string $editor): int
     $values = ':' . implode(', :', array_keys($fields));
     query($db, "INSERT INTO people ($columns) VALUES ($values)", $fields);
     $id = (int) $db->lastInsertId();
-    record_change($db, $fields + ['id' => $id], $editor, 'created');
+    $person = $fields + ['id' => $id];
+    record_change($db, $person, $editor, 'created');
+    sync_person_tasks($db, $person);
+    sync_person_task($db, $id, 'relations', true);
     return $id;
 }
 
@@ -149,11 +152,11 @@ function save_person(PDO $db, int $id, array $fields, string $editor): int
             return insert_person($db, $fields, $editor);
         }
         $original = find_person($db, $id);
+        $person = $fields + ['id' => $id];
         // Un enregistrement identique ne produit aucune entrée. Un vrai changement conserve l'ancienne valeur.
         $changes = array_filter($fields, static fn ($value, $key) => $value !== $original[$key], ARRAY_FILTER_USE_BOTH);
         if ($changes) {
             // Valider les dates sous le même verrou que l'écriture et la lecture des filiations.
-            $person = $fields + ['id' => $id];
             $datesChanged = isset($changes['birth_date']) || isset($changes['death_date']);
             if ($datesChanged) {
                 assert_lifespan_order($person);
@@ -165,6 +168,8 @@ function save_person(PDO $db, int $id, array $fields, string $editor): int
             query($db, 'UPDATE people SET ' . implode(', ', $assignments) . ' WHERE id = :id', $changes + ['id' => $id]);
             record_change($db, $person, $editor, 'edited', array_intersect_key($original, $changes));
         }
+        sync_person_tasks($db, $person);
+        sync_isolation_tasks($db, $id);
         return $id;
     });
 }
@@ -260,7 +265,9 @@ function relation_exists(PDO $db, array $relation, int $ignoreId = 0): array|fal
 function insert_relation(PDO $db, array $relation): int
 {
     query($db, 'INSERT INTO relations (a_id,b_id,kind,end_year) VALUES (:a_id,:b_id,:kind,:end_year)', $relation);
-    return (int) $db->lastInsertId();
+    $id = (int) $db->lastInsertId();
+    sync_isolation_tasks($db, $relation['a_id'], $relation['b_id']);
+    return $id;
 }
 
 function find_relation(PDO $db, int $id): array
@@ -347,6 +354,7 @@ function save_relation(PDO $db, int $id, array $relation, string $editor): int
         } else {
             query($db, 'UPDATE relations SET a_id = :a_id, b_id = :b_id, kind = :kind, end_year = :end_year WHERE id = :id',
                 $relation + ['id' => $id]);
+            sync_isolation_tasks($db, $old['a_id'], $old['b_id'], $relation['a_id'], $relation['b_id']);
             log_relation($db, $people, $relation, $editor, 'relinked', $old);
         }
         return $id;
@@ -362,6 +370,7 @@ function delete_relation(PDO $db, int $id, string $editor): void
             $relation['b_id'] => find_person($db, $relation['b_id']),
         ];
         query($db, 'DELETE FROM relations WHERE id = ?', [$id]);
+        sync_isolation_tasks($db, $relation['a_id'], $relation['b_id']);
         log_relation($db, $people, $relation, $editor, 'unlinked');
     });
 }
@@ -427,12 +436,15 @@ function remove_person(PDO $db, int $id, string $editor): void
 {
     write_transaction($db, static function (PDO $db) use ($id, $editor): void {
         $person = find_person($db, $id);
+        $neighbors = [];
         foreach (query($db, 'SELECT * FROM relations WHERE a_id = :id OR b_id = :id', ['id' => $id])->fetchAll() as $relation) {
             $other = find_person($db, $relation['a_id'] === $id ? $relation['b_id'] : $relation['a_id']);
             record_change($db, $other, $editor, 'unlinked', ['Personne liée' => full_name($person)]);
+            $neighbors[] = $other['id'];
         }
         record_change($db, $person, $editor, 'deleted', $person);
         query($db, 'DELETE FROM people WHERE id = ?', [$id]);
+        sync_isolation_tasks($db, ...$neighbors);
     });
 }
 
@@ -471,7 +483,7 @@ function merge_people(PDO $db, int $keepId, int $removeId, string $editor): void
         // Compléter les champs vides de la fiche principale en gardant les années associées aux dates.
         $assignments = [];
         $fill = [];
-        foreach (['sex', 'birth_date', 'death_date', 'birth_place', 'death_place', 'residence', 'biography', 'notable_facts'] as $field) {
+        foreach (['first_name', 'last_name', 'sex', 'birth_date', 'death_date', 'birth_place', 'death_place', 'residence', 'biography', 'notable_facts'] as $field) {
             if (in_array($keep[$field], ['', null], true) && !in_array($remove[$field], ['', null], true)) {
                 $fill[$field] = $remove[$field];
                 $year = str_replace('_date', '_year', $field);
@@ -479,6 +491,12 @@ function merge_people(PDO $db, int $keepId, int $removeId, string $editor): void
                     $fill[$year] = $remove[$year];
                 }
             }
+        }
+        if ($remove['deceased'] && !$keep['deceased']) {
+            $fill['deceased'] = 1;
+        }
+        if (isset($fill['first_name']) || isset($fill['last_name'])) {
+            $fill['search_name'] = normalized_name(($fill['first_name'] ?? $keep['first_name']) . ' ' . ($fill['last_name'] ?? $keep['last_name']));
         }
         foreach ($fill as $key => $value) {
             $assignments[] = "$key = :$key";
@@ -495,14 +513,18 @@ function merge_people(PDO $db, int $keepId, int $removeId, string $editor): void
         // Récupérer le médaillon du doublon si la fiche conservée n'en utilise pas déjà un.
         query($db, 'UPDATE OR IGNORE portraits SET person_id = ? WHERE person_id = ?', [$keepId, $removeId]);
         query($db, 'UPDATE history SET person_id = ? WHERE person_id = ?', [$keepId, $removeId]);
+        // Les deux fiches désignent la même personne. Conserver les décisions prises pour le doublon.
+        transfer_ignored_person_tasks($db, $keepId, $removeId);
         record_change($db, $keep, $editor, 'merged', ['Fiche fusionnée' => full_name($remove)] + $remove);
         query($db, 'DELETE FROM people WHERE id = ?', [$removeId]);
+        sync_person_tasks($db, $merged);
+        sync_isolation_tasks($db, $keepId);
     });
 }
 
 function history_labels(): array
 {
-    return ['first_name' => 'Prénom', 'last_name' => 'Nom', 'sex' => 'Sexe', 'birth_date' => 'Naissance',
+    return ['first_name' => 'Prénom', 'last_name' => 'Nom', 'sex' => 'Sexe', 'deceased' => 'Décédée', 'birth_date' => 'Naissance',
         'death_date' => 'Décès', 'birth_place' => 'Lieu de naissance', 'death_place' => 'Lieu de décès',
         'residence' => 'Lieu de vie', 'biography' => 'Biographie', 'notable_facts' => 'Faits notables',
         'Relation' => 'Relation', 'Relation précédente' => 'Relation précédente', 'Personne liée' => 'Personne liée',

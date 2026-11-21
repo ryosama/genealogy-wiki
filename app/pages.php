@@ -31,6 +31,8 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
                     $values[$field] = in_array($field, ['biography', 'notable_facts'], true)
                         ? bio_html(mb_strcut($value, 0, 70000)) : $value;
                 }
+                $values['deceased'] = isset($_POST['deceased']) ? input($_POST, 'deceased') === '1'
+                    : $values['death_date'] !== '' || $values['death_place'] !== '';
             }
             if (!$id) {
                 require_admin($user);
@@ -96,6 +98,10 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
         case 'comptes':
             require_admin($user);
             return ['accounts', 'Gestion des comptes', ['accounts' => managed_accounts($db), 'firstAdmin' => first_admin_id($db)]];
+
+        case 'a-renseigner':
+            require_admin($user);
+            return ['todo', 'À renseigner ultérieurement', ['tasks' => pending_person_tasks($db)]];
 
         case 'compte':
             $admin = require_admin($user);

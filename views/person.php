@@ -26,6 +26,8 @@ $saveLabel = $person ? 'Enregistrer les modifications' : 'Créer la fiche';
                         <span class="profile-location"><?= icon('location', 18) ?> <?= e($person['residence']) ?></span>
                     <?php endif ?>
                 </p>
+            <?php else: ?>
+                <p>Les champs laissés vides seront ajoutés à la liste « À renseigner ultérieurement ».</p>
             <?php endif ?>
         </div>
         <div class="actions profile-actions">
@@ -101,7 +103,7 @@ $saveLabel = $person ? 'Enregistrer les modifications' : 'Créer la fiche';
                         <?php endforeach ?>
                     </div>
                     <?php // Permettre aux administrateurs d'ouvrir le formulaire de création d'une relation depuis la fiche.
-                    if ($user): ?><button class="button button-light panel-action" type="button" data-new-relation><?= icon('plus', 17) ?> Ajouter une relation</button><?php endif ?>
+                    if ($user): ?><button class="button button-light panel-action" id="person-relations" type="button" data-new-relation data-task-field><?= icon('plus', 17) ?> Ajouter une relation</button><?php endif ?>
                 </section>
 
                 <section class="panel content-panel" aria-labelledby="photos-heading">

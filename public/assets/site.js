@@ -95,3 +95,14 @@ document.querySelectorAll('[data-rich-editor]').forEach(editor => {
     });
     source.form.addEventListener('submit', sync);
 });
+
+function focusTaskField() {
+    const target = document.getElementById(window.location.hash.slice(1));
+    if (!target?.matches('[data-task-field]') || !target.getClientRects().length) return;
+    // Dans un champ riche, placer le curseur dans la zone de saisie plutôt que sur la barre d'outils.
+    const field = target.querySelector('[contenteditable]') ?? target;
+    field.focus({preventScroll: true});
+    target.scrollIntoView({block: 'center'});
+}
+focusTaskField();
+window.addEventListener('hashchange', focusTaskField);

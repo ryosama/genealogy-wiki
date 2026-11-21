@@ -139,20 +139,27 @@ function person_fields(array $source): array
     if ($sex !== '' && !isset(SEX_LABELS[$sex])) {
         throw new InputException('Choisis un sexe valide ou laisse ce champ non renseigné.');
     }
+    // Le formulaire envoie explicitement 0 lorsque la case est décochée. Les anciennes saisies
+    // et la démonstration peuvent encore indiquer le décès uniquement avec une date ou un lieu.
+    $deceased = input($source, 'deceased');
+    [$deathDate, $deathYear] = $deceased === '0' ? ['', null] : parse_date(input($source, 'death_date'));
+    $deathPlace = $deceased === '0' ? '' : short_text($source, 'death_place', 180);
     // Construire les colonnes autorisées avant de préparer l'écriture SQL.
     $fields = [
-        'first_name' => required_text($source, 'first_name', 'Le prénom', 100),
-        'last_name' => family_name(required_text($source, 'last_name', 'Le nom', 100)),
+        'first_name' => short_text($source, 'first_name', 100),
+        'last_name' => family_name(short_text($source, 'last_name', 100)),
         'sex' => $sex === '' ? null : $sex,
+        'deceased' => (int) ($deceased === '1' || $deathDate !== '' || $deathPlace !== ''),
         'birth_place' => short_text($source, 'birth_place', 180),
-        'death_place' => short_text($source, 'death_place', 180),
+        'death_place' => $deathPlace,
+        'death_date' => $deathDate,
+        'death_year' => $deathYear,
         'residence' => short_text($source, 'residence', 180),
         'biography' => bio_html(input($source, 'biography')),
         'notable_facts' => bio_html(input($source, 'notable_facts')),
     ];
-    $fields['search_name'] = normalized_name(full_name($fields));
+    $fields['search_name'] = normalized_name($fields['first_name'] . ' ' . $fields['last_name']);
     [$fields['birth_date'], $fields['birth_year']] = parse_date(input($source, 'birth_date'));
-    [$fields['death_date'], $fields['death_year']] = parse_date(input($source, 'death_date'));
     return $fields;
 }
 
@@ -182,5 +189,6 @@ function lifespan(array $person): string
 
 function initials(array $person): string
 {
-    return mb_strtoupper(mb_substr($person['first_name'], 0, 1) . mb_substr($person['last_name'], 0, 1));
+    $letters = mb_substr($person['first_name'], 0, 1) . mb_substr($person['last_name'], 0, 1);
+    return $letters === '' ? '?' : mb_strtoupper($letters);
 }

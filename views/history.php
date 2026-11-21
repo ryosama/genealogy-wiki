@@ -38,9 +38,9 @@
     <?php if ($page > 1 || $more): ?>
         <nav class="pagination" aria-label="Pages de l’historique">
             <?php $params = $id ? ['id' => $id] : []; ?>
-            <?php if ($page > 1): ?><a class="button button-light" href="<?= e(url('historique', $params + ['page' => $page - 1])) ?>">Précédente</a><?php endif ?>
+            <?php if ($page > 1): ?><a class="button button-light" href="<?= e(url('historique', $params + ['page' => $page - 1])) ?>"><?= icon('backward', 16) ?> Précédente</a><?php endif ?>
             <span>Page <?= e($page) ?></span>
-            <?php if ($more): ?><a class="button button-light" href="<?= e(url('historique', $params + ['page' => $page + 1])) ?>">Suivante</a><?php endif ?>
+            <?php if ($more): ?><a class="button button-light" href="<?= e(url('historique', $params + ['page' => $page + 1])) ?>">Suivante <?= icon('forward', 16) ?></a><?php endif ?>
         </nav>
     <?php endif ?>
 </section>

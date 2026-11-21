@@ -58,8 +58,10 @@ function store_media(PDO $db, int $personId, string $kind, string $title, array 
         throw new InputException('Choisis un fichier à ajouter.');
     }
     $source = $file['tmp_name'];
-    if ($file['size'] < 1 || $file['size'] > MEDIA_LIMIT) {
-        throw new InputException('La taille maximale est de 12 Mo par fichier.');
+    $limit = $kind === 'photo' ? PHOTO_UPLOAD_LIMIT : MEDIA_LIMIT;
+    if ($file['size'] < 1 || $file['size'] > $limit) {
+        $megabytes = intdiv($limit, 1024 * 1024);
+        throw new InputException("La taille maximale est de $megabytes Mo par fichier.");
     }
     // PHP détecte le type à partir du contenu du fichier envoyé.
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($source);
@@ -70,6 +72,12 @@ function store_media(PDO $db, int $personId, string $kind, string $title, array 
         $bytes = file_get_contents($source);
     } else {
         throw new InputException('Type de fichier indisponible. Choisis une photo prise en charge ou un document PDF ou JPEG.');
+    }
+    if ($title === '' && $kind === 'photo') {
+        // Le nom du fichier sert de titre dès l'envoi. Il reste modifiable dans l'éditeur.
+        $filename = str_replace('\\', '/', (string) ($file['name'] ?? ''));
+        $name = preg_replace('/[\x00-\x1f\x7f]/', '', pathinfo($filename, PATHINFO_FILENAME));
+        $title = trim(mb_substr($name, 0, 180));
     }
     if ($title === '') {
         $title = $kind === 'photo' ? 'Photo' : 'Document';
@@ -116,8 +124,8 @@ function serve_media(PDO $db, int $id, bool $portrait = false): never
     if (!$file) {
         throw new InputException('Ce fichier est introuvable.', 404);
     }
-    if ($portrait) {
-        // Un nouveau cadrage de la même photo conserve l'URL du médaillon.
+    if ($file['mime'] === 'image/webp') {
+        // Une photo ou un médaillon recadré garde son URL.
         header('Cache-Control: no-cache');
     }
     $extension = match ($file['mime']) {

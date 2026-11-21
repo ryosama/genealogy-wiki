@@ -26,8 +26,8 @@
             <?php endif ?>
             <?php view('password-fields', compact('passwordRequired')); ?>
             <div class="actions">
-                <button class="button button-primary" name="action" value="save-account"><?= $id ? 'Enregistrer le compte' : 'Ajouter le compte' ?></button>
-                <a class="button button-light" href="<?= e(url('comptes')) ?>">Annuler</a>
+                <button class="button button-primary" name="action" value="save-account"><?= icon($id ? 'floppy-disk' : 'plus', 17) ?> <?= $id ? 'Enregistrer le compte' : 'Ajouter le compte' ?></button>
+                <a class="button button-light" href="<?= e(url('comptes')) ?>"><?= icon('circle-xmark', 17) ?> Annuler</a>
             </div>
         </form>
     </div>

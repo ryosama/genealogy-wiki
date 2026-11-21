@@ -102,6 +102,8 @@ h3 { font-size: 1.23rem; }
 .button-light:hover:not(:disabled) { background: #eef0e7; border-color: #c2cbbd; }
 .button-danger { color: var(--danger); background: #fffaf8; border-color: #e9d2cb; }
 .button-danger:hover { background: #fae9e3; }
+.button-danger-filled { color: var(--white); background: var(--danger); }
+.button-danger-filled:hover, .button-danger-filled:focus-visible { color: var(--white); background: #713029; }
 .button-small { min-height: 34px; padding: .31rem .59rem; }
 .icon-button {
     display: inline-grid;
@@ -322,6 +324,8 @@ h3 { font-size: 1.23rem; }
 .file-row span { overflow-wrap: anywhere; }
 .file-row small { color: var(--muted); }
 .upload-box, .admin-tools { margin-top: 14px; }
+.photo-upload-status { margin-top: .55rem; font-size: .88rem; }
+.photo-upload-status:empty { display: none; }
 .upload-box summary, .admin-tools summary, .history-row summary { color: var(--forest); cursor: pointer; font-size: .92rem; font-weight: 640; }
 .upload-box form, .admin-tools form { margin-top: 12px; }
 .profile-page .graph-panel { margin-top: 19px; }
@@ -360,8 +364,14 @@ h3 { font-size: 1.23rem; }
 .rich-input { min-height: 130px; border: 1px solid #d4d7cc; border-radius: 0 0 8px 8px; background: white; padding: 13px; }
 
 .portrait-page { max-width: 970px; }
-.portrait-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 220px); }
-.portrait-photo-pane { min-width: 0; padding: clamp(12px, 3vw, 24px); }
+.photo-editor-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: end; padding: 15px; margin-bottom: 12px; }
+.photo-editor-heading label { display: grid; gap: 5px; color: var(--forest); font-size: .9rem; font-weight: 630; }
+.photo-editor-heading input { font-weight: 450; }
+.photo-editor-tools button { transition: none; }
+.photo-editor-tools button[aria-pressed="true"] { color: var(--white); background: var(--forest); border-color: var(--forest); }
+.portrait-workspace { display: grid; grid-template-columns: minmax(0, 1fr); }
+.portrait-workspace.is-ready { grid-template-columns: minmax(0, 1fr) minmax(218px, 270px); }
+.portrait-photo-pane { display: grid; align-content: center; min-width: 0; padding: clamp(12px, 3vw, 24px); }
 .portrait-photo-pane p { color: var(--muted); font-size: .93rem; }
 .portrait-stage {
     position: relative;
@@ -373,9 +383,36 @@ h3 { font-size: 1.23rem; }
     background: #edece4;
 }
 .portrait-stage > img { width: auto; height: auto; max-height: min(64vh, 620px); user-select: none; }
-/* L'ombre assombrit la partie écartée. Le bord et la poignée restent au-dessus de la photo. */
+/* Le rectangle et le cercle assombrissent la partie écartée de leur sélection. */
+.photo-frame {
+    position: absolute;
+    z-index: 1;
+    border: 2px solid white;
+    box-shadow: 0 0 0 9999px #151c16a6, inset 0 0 0 1px #17221c7d;
+    cursor: move;
+    touch-action: none;
+}
+.photo-frame::before, .photo-frame::after { content: ''; position: absolute; pointer-events: none; }
+.photo-frame::before { inset: 33.333% 0; border-block: 1px solid #fff8; }
+.photo-frame::after { inset: 0 33.333%; border-inline: 1px solid #fff8; }
+.photo-frame-handle {
+    position: absolute;
+    width: 21px;
+    height: 21px;
+    border: 2px solid white;
+    border-radius: 5px;
+    background: var(--forest);
+    box-shadow: 0 1px 4px #142216aa;
+}
+.photo-frame-nw { top: 2px; left: 2px; cursor: nwse-resize; }
+.photo-frame-ne { top: 2px; right: 2px; cursor: nesw-resize; }
+.photo-frame-sw { bottom: 2px; left: 2px; cursor: nesw-resize; }
+.photo-frame-se { bottom: 2px; right: 2px; cursor: nwse-resize; }
+.photo-frame.is-guide { z-index: 3; border: 1px dashed #fff; box-shadow: none; pointer-events: none; }
+.photo-frame.is-guide::before, .photo-frame.is-guide::after, .photo-frame.is-guide .photo-frame-handle { display: none; }
 .portrait-selection {
     position: absolute;
+    z-index: 2;
     border: 2px solid white;
     border-radius: 50%;
     box-shadow: 0 0 0 9999px #151c16a6, inset 0 0 0 1px #17221c7d;
@@ -397,11 +434,13 @@ h3 { font-size: 1.23rem; }
 }
 .portrait-controls { padding: 20px; border-left: 1px solid var(--line); background: #f4f5ee; border-radius: 0 12px 12px 0; }
 .portrait-controls h2 { font-size: 1.35rem; text-align: center; }
+.portrait-controls p { margin: 0; font-size: .86rem; }
+.photo-dimensions { color: var(--forest); text-align: center; font-size: .87rem; font-variant-numeric: tabular-nums; }
 .portrait-preview {
     position: relative;
-    width: 100px;
+    width: 112px;
     aspect-ratio: 1;
-    margin: 12px auto 22px;
+    margin: 3px auto;
     overflow: hidden;
     border-radius: 50%;
     background: var(--pale);
@@ -410,10 +449,12 @@ h3 { font-size: 1.23rem; }
 .portrait-preview img { position: absolute; max-width: none; }
 .portrait-controls label { gap: 0; }
 .portrait-controls input[type="range"] { min-height: 34px; padding: 0; border: 0; background: transparent; accent-color: var(--forest); }
+.portrait-controls .photo-portrait-choice { display: flex; align-items: center; gap: 9px; }
+.photo-portrait-choice input { width: 18px; min-height: 0; height: 18px; margin: 0; accent-color: var(--forest); }
 .portrait-actions { margin-top: 16px; }
 
 @media (max-width: 630px) {
-    .portrait-workspace { grid-template-columns: 1fr; }
+    .photo-editor-heading, .portrait-workspace.is-ready { grid-template-columns: minmax(0, 1fr); }
     .portrait-controls { border-left: 0; border-top: 1px solid var(--line); border-radius: 0 0 12px 12px; }
     .portrait-stage > img { max-height: 52vh; }
 }
@@ -551,7 +592,7 @@ h3 { font-size: 1.23rem; }
     border-radius: 9px;
     box-shadow: 0 7px 20px #253b2825;
 }
-.menu-dropdown button { text-align: left; border: 0; padding: .57rem .63rem; border-radius: 5px; background: transparent; color: var(--ink); font-size: .9rem; }
+.menu-dropdown button { display: flex; align-items: center; gap: .45rem; text-align: left; border: 0; padding: .57rem .63rem; border-radius: 5px; background: transparent; color: var(--ink); font-size: .9rem; }
 .menu-dropdown button:hover { background: var(--pale); }
 .print-graph { display: none; }
 

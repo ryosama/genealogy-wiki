@@ -65,7 +65,7 @@ if ($user): ?>
                     <?php endforeach ?>
                 </select>
             </label>
-            <button class="button button-primary" name="action" value="create-relative">Créer la fiche et le lien</button>
+            <button class="button button-primary" name="action" value="create-relative"><?= icon('link', 17) ?> Créer la fiche et le lien</button>
         </form>
     </dialog>
     <?php // Le menu remplit l'identifiant de la fiche ciblée et soumet ce formulaire après confirmation. ?>

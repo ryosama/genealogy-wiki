@@ -3,8 +3,9 @@ declare(strict_types=1);
 
 // Chemin du projet, commun au serveur web et aux commandes du terminal.
 define('PROJECT_ROOT', dirname(__DIR__));
-// Taille maximale d'un fichier, en octets (12 Mio).
+// Limites en octets. Les documents gardent leur plafond de 12 Mio.
 define('MEDIA_LIMIT', 12 * 1024 * 1024);
+define('PHOTO_UPLOAD_LIMIT', 10 * 1024 * 1024);
 // Version du schéma complet déclaré dans app/schema.sql.
 define('SCHEMA_VERSION', 5);
 

@@ -13,7 +13,7 @@
                 <label>Mot de passe
                     <input type="password" name="password" autocomplete="current-password" required>
                 </label>
-                <button class="button button-primary" name="action" value="login">Se connecter</button>
+                <button class="button button-primary" name="action" value="login"><?= icon('right-to-bracket', 17) ?> Se connecter</button>
             </form>
             <p class="account-alt"><a href="<?= e(url('inscription')) ?>">Demander un compte administrateur</a></p>
         <?php elseif ($mode === 'request'): ?>
@@ -37,7 +37,7 @@
                 <label>Contrôle anti-spam · combien font <?= e($challenge['left']) ?> + <?= e($challenge['right']) ?> ?
                     <input name="captcha" inputmode="numeric" pattern="[0-9]{1,2}" minlength="1" maxlength="2" autocomplete="off" required>
                 </label>
-                <button class="button button-primary" name="action" value="request">Envoyer la demande</button>
+                <button class="button button-primary" name="action" value="request"><?= icon('paper-plane', 17) ?> Envoyer la demande</button>
             </form>
         <?php else: ?>
             <p>Choisis un mot de passe pour le compte de <?= e(full_name($account)) ?>. Un administrateur devra ensuite valider la demande.</p>
@@ -45,7 +45,7 @@
                 <?= csrf_field() ?>
                 <input type="hidden" name="token" value="<?= e($token) ?>">
                 <?php view('password-fields', ['passwordRequired' => true]); ?>
-                <button class="button button-primary" name="action" value="activate">Enregistrer le mot de passe</button>
+                <button class="button button-primary" name="action" value="activate"><?= icon('floppy-disk', 17) ?> Enregistrer le mot de passe</button>
             </form>
         <?php endif ?>
     </div>

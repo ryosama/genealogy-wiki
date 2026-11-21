@@ -59,11 +59,13 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
                 'attemptedRelation' => attempted_relation($common), 'attemptedRelative' => attempted_relative($common),
             ]];
 
+        case 'photo':
         case 'medaillon':
             require_admin($user);
             $person = find_person($db, $id);
-            $editor = portrait_editor_data($db, $id, id_value($_GET['photo'] ?? null));
-            return ['portrait', $editor['saved'] ? 'Ajuster le médaillon' : 'Créer le médaillon', $editor + ['person' => $person]];
+            $draft = $common['error'] && input($_POST, 'action') === 'save-photo' ? $_POST : [];
+            $editor = photo_editor_data($db, $id, id_value($_GET['photo'] ?? null), $route === 'medaillon', $draft);
+            return ['photo-editor', 'Modifier la photo', $editor + ['person' => $person]];
 
         case 'historique':
             require_admin($user);

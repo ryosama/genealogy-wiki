@@ -32,7 +32,7 @@
                             <?php if (!$isFirstAdmin || $isOwnAccount): ?>
                                 <div class="actions managed-account-actions">
                                     <a class="button button-light button-small" href="<?= e(url('compte', ['id' => $account['id']])) ?>">
-                                        <?= $group === 'waiting' && !$account['has_password'] ? 'Définir un mot de passe' : 'Modifier' ?>
+                                        <?= icon('edit', 15) ?> <?= $group === 'waiting' && !$account['has_password'] ? 'Définir un mot de passe' : 'Modifier' ?>
                                     </a>
                                     <?php // Les demandes peuvent être validées ou refusées. Les comptes actifs peuvent être supprimés.
                                     if ($group === 'waiting'): ?>
@@ -40,18 +40,18 @@
                                         if ($account['has_password']): ?>
                                             <form method="post" action="<?= e(url('comptes', ['id' => $account['id']])) ?>">
                                                 <?= csrf_field() ?>
-                                                <button class="button button-primary button-small" name="action" value="approve-account">Valider</button>
+                                                <button class="button button-primary button-small" name="action" value="approve-account"><?= icon('check', 15) ?> Valider</button>
                                             </form>
                                         <?php endif ?>
                                         <form method="post" action="<?= e(url('comptes', ['id' => $account['id']])) ?>" data-confirm="Refuser et retirer cette demande de compte ?">
                                             <?= csrf_field() ?>
-                                            <button class="button button-danger button-small" name="action" value="reject-account">Refuser</button>
+                                            <button class="button button-danger button-small" name="action" value="reject-account"><?= icon('circle-xmark', 15) ?> Refuser</button>
                                         </form>
                                     <?php else: ?>
                                         <form method="post" action="<?= e(url('comptes', ['id' => $account['id']])) ?>"
                                             data-confirm="<?= $isOwnAccount ? 'Supprimer définitivement ton compte ?' : 'Supprimer définitivement ce compte ?' ?>">
                                             <?= csrf_field() ?>
-                                            <button class="button button-danger button-small" name="action" value="delete-account">Supprimer</button>
+                                            <button class="button button-danger button-small" name="action" value="delete-account"><?= icon('trash', 15) ?> Supprimer</button>
                                         </form>
                                     <?php endif ?>
                                 </div>

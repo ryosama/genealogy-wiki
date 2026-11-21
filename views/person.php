@@ -31,7 +31,7 @@ $saveLabel = $person ? 'Enregistrer les modifications' : 'Créer la fiche';
         <div class="actions profile-actions">
             <?php if ($person): ?><?= print_button('Imprimer la fiche') ?><?php endif ?>
             <?php if ($canEdit): ?>
-                <button class="button button-primary" type="submit" form="profile-fields"><?= e($saveLabel) ?></button>
+                <button class="button button-primary" type="submit" form="profile-fields"><?= icon($person ? 'floppy-disk' : 'plus', 17) ?> <?= e($saveLabel) ?></button>
             <?php endif ?>
         </div>
     </div>
@@ -116,11 +116,11 @@ $saveLabel = $person ? 'Enregistrer les modifications' : 'Créer la fiche';
                                         <img src="<?= e(url('media', ['id' => $photo['id']])) ?>" alt="<?= e($photo['title']) ?>" loading="lazy">
                                     </a>
                                     <figcaption><?= e($photo['title']) ?></figcaption>
-                                    <?php // Le lien de cadrage propose de créer ou d'ajuster le médaillon selon la photo source.
+                                    <?php // L'éditeur regroupe le titre, le recadrage de la photo et le médaillon.
                                     // Le formulaire de suppression cible la photo elle-même.
                                     if ($user): ?>
-                                        <a class="text-link photo-portrait-link" href="<?= e(url('medaillon', ['id' => $person['id'], 'photo' => $photo['id']])) ?>">
-                                            <?= icon('edit', 15) ?> <?= $person['portrait_id'] === $photo['id'] ? 'Ajuster le médaillon' : 'Créer un médaillon' ?>
+                                        <a class="text-link photo-portrait-link" href="<?= e(url('photo', ['id' => $person['id'], 'photo' => $photo['id']])) ?>">
+                                            <?= icon('edit', 15) ?> Modifier la photo
                                         </a>
                                         <?php view('remove-media', ['personId' => $person['id'], 'mediaId' => $photo['id']]); ?>
                                     <?php endif ?>
@@ -129,7 +129,7 @@ $saveLabel = $person ? 'Enregistrer les modifications' : 'Créer la fiche';
                         </div>
                     <?php endif ?>
                     <?php // Afficher le formulaire d'ajout de photo pour les administrateurs, même si la galerie est vide.
-                    if ($user): view('upload', ['personId' => $person['id'], 'kind' => 'photo']); endif ?>
+                    if ($user): view('photo-upload', ['personId' => $person['id']]); endif ?>
                 </section>
             </div>
         <?php endif ?>
@@ -157,13 +157,13 @@ $saveLabel = $person ? 'Enregistrer les modifications' : 'Créer la fiche';
                                 <?php endforeach ?>
                             </select>
                         </label>
-                        <button class="button button-light" name="action" value="merge-person">Fusionner les fiches</button>
+                        <button class="button button-light" name="action" value="merge-person"><?= icon('code-merge', 17) ?> Fusionner les fiches</button>
                     </form>
                 <?php endif ?>
                 <form method="post" action="<?= e(url('personne', ['id' => $person['id']])) ?>"
                     data-confirm="Supprimer définitivement la fiche, ses relations et ses fichiers ?">
                     <?= csrf_field() ?>
-                    <button class="button button-danger" name="action" value="delete-person">Supprimer la fiche</button>
+                    <button class="button button-danger" name="action" value="delete-person"><?= icon('trash', 17) ?> Supprimer la fiche</button>
                 </form>
             </details>
         </section>
@@ -171,7 +171,7 @@ $saveLabel = $person ? 'Enregistrer les modifications' : 'Créer la fiche';
 
     <?php if ($canEdit): ?>
         <div class="actions profile-actions profile-footer-actions">
-            <button class="button button-primary" type="submit" form="profile-fields"><?= e($saveLabel) ?></button>
+            <button class="button button-primary" type="submit" form="profile-fields"><?= icon($person ? 'floppy-disk' : 'plus', 17) ?> <?= e($saveLabel) ?></button>
         </div>
     <?php endif ?>
 </section>

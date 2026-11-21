@@ -11,7 +11,7 @@
     <?php if ($route === '' || $route === 'personnes'): ?><script src="<?= e(asset('search.js')) ?>" defer></script><?php endif ?>
     <?php // Le module de dessin n'est chargé que si la page fournit les données d'un arbre. ?>
     <?php if (isset($graph)): ?><script src="<?= e(asset('tree.js')) ?>" type="module"></script><?php endif ?>
-    <?php if ($route === 'medaillon'): ?><script src="<?= e(asset('portrait.js')) ?>" defer></script><?php endif ?>
+    <?php if (in_array($route, ['photo', 'medaillon'], true)): ?><script src="<?= e(asset('photo-editor.js')) ?>" defer></script><?php endif ?>
 </head>
 <body class="<?= $route === 'arbre' ? 'tree-page' : '' ?>">
 <a class="skip-link" href="#main">Aller au contenu</a>
@@ -25,7 +25,7 @@
             <?php // Les pages liées à une fiche font partie de la rubrique Personnes. ?>
             <?php foreach (['' => ['Accueil', 'home'], 'personnes' => ['Personnes', 'people'], 'arbre' => ['Arbre', 'tree']]
                 as $section => [$label, $pictogram]):
-                $active = $route === $section || ($section === 'personnes' && in_array($route, ['personne', 'historique', 'medaillon'], true)); ?>
+                $active = $route === $section || ($section === 'personnes' && in_array($route, ['personne', 'historique', 'photo', 'medaillon'], true)); ?>
                 <a href="<?= e(url($section)) ?>" <?= $active ? 'aria-current="page"' : '' ?>>
                     <?= icon($pictogram, 15) ?> <?= e($label) ?>
                 </a>

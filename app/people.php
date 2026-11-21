@@ -15,7 +15,7 @@ const ACTION_LABELS = [
     'created' => 'Fiche créée', 'edited' => 'Fiche modifiée', 'deleted' => 'Fiche supprimée',
     'merged' => 'Fiches fusionnées', 'merged_away' => 'Fiche fusionnée',
     'linked' => 'Relation ajoutée', 'relinked' => 'Relation modifiée', 'unlinked' => 'Relation supprimée',
-    'media_added' => 'Fichier ajouté', 'media_removed' => 'Fichier supprimé',
+    'media_added' => 'Fichier ajouté', 'media_removed' => 'Fichier supprimé', 'photo_edited' => 'Photo modifiée',
     'portrait_saved' => 'Médaillon enregistré', 'portrait_removed' => 'Médaillon retiré',
 ];
 

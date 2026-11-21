@@ -15,10 +15,10 @@
             <details class="print-menu">
                 <summary class="button button-light"><?= icon('print', 18) ?> Imprimer l’arbre <?= icon('down', 14) ?></summary>
                 <div class="menu-dropdown">
-                    <button type="button" data-print-tree="view">Vue affichée</button>
-                    <button type="button" data-print-tree="ancestors">Branche ascendante complète</button>
-                    <button type="button" data-print-tree="descendants">Branche descendante complète</button>
-                    <button type="button" data-print-tree="both">Ascendants et descendants complets</button>
+                    <button type="button" data-print-tree="view"><?= icon('focus', 16) ?> Vue affichée</button>
+                    <button type="button" data-print-tree="ancestors"><?= icon('chevron-up', 16) ?> Branche ascendante complète</button>
+                    <button type="button" data-print-tree="descendants"><?= icon('down', 16) ?> Branche descendante complète</button>
+                    <button type="button" data-print-tree="both"><?= icon('tree', 16) ?> Ascendants et descendants complets</button>
                 </div>
             </details>
         </div>
@@ -51,7 +51,7 @@
         <p class="graph-help">Clic droit ou appui prolongé sur une fiche ou un lien pour afficher ses actions. Glissez une case pour la déplacer temporairement.</p>
         <div class="graph-pair" data-pair-status hidden>
             <p role="status"></p>
-            <button class="button button-light button-small" type="button" data-cancel-pair>Annuler</button>
+            <button class="button button-light button-small" type="button" data-cancel-pair><?= icon('circle-xmark', 16) ?> Annuler</button>
         </div>
     <?php else: ?>
         <p class="graph-help">Glissez une case pour la déplacer temporairement.</p>
@@ -103,8 +103,8 @@
                     <input name="end_year" pattern="[0-9]{1,4}" inputmode="numeric" maxlength="4">
                 </label>
                 <div class="actions">
-                    <button class="button button-primary" name="action" value="save-relation">Enregistrer le lien</button>
-                    <button class="button button-danger" name="action" value="delete-relation" type="submit" formnovalidate data-remove-link hidden>Supprimer</button>
+                    <button class="button button-primary" name="action" value="save-relation"><?= icon('floppy-disk', 17) ?> Enregistrer le lien</button>
+                    <button class="button button-danger" name="action" value="delete-relation" type="submit" formnovalidate data-remove-link hidden><?= icon('trash', 17) ?> Supprimer</button>
                 </div>
             </form>
         </dialog>

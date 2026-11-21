@@ -1,5 +1,42 @@
 'use strict';
 
+document.querySelectorAll('[data-photo-upload]').forEach(form => {
+    const picker = form.querySelector('[data-photo-picker]');
+    const file = form.elements.file;
+    const status = form.querySelector('[data-photo-upload-status]');
+    const limit = Number(form.dataset.photoUpload);
+    let sending = false;
+    form.querySelector('[data-photo-upload-fallback]').hidden = true;
+    picker.hidden = false;
+    picker.addEventListener('click', () => file.click());
+    file.addEventListener('change', () => {
+        if (!file.files.length) return;
+        if (file.files[0].size > limit) {
+            status.textContent = 'Cette photo dépasse la limite de 10 Mo.';
+            file.value = '';
+            return;
+        }
+        form.requestSubmit();
+    });
+    form.addEventListener('submit', event => {
+        if (sending) {
+            event.preventDefault();
+            return;
+        }
+        // Le même fichier ne doit être envoyé qu'une fois pendant la conversion.
+        sending = true;
+        picker.disabled = true;
+        status.textContent = 'Envoi et conversion en WebP…';
+    });
+    window.addEventListener('pageshow', event => {
+        if (!event.persisted) return;
+        sending = false;
+        picker.disabled = false;
+        file.value = '';
+        status.textContent = '';
+    });
+});
+
 document.querySelectorAll('input[name="last_name"]').forEach(field => {
     function capitalize() {
         const original = field.value;

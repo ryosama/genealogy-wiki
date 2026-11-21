@@ -30,9 +30,9 @@
     <?php endif ?>
     <?php if ($pages > 1): ?>
         <nav class="pagination" aria-label="Pages des résultats">
-            <?php if ($page > 1): ?><a class="button button-light" href="<?= e(url('personnes', $filters + ['page' => $page - 1])) ?>">Précédente</a><?php endif ?>
+            <?php if ($page > 1): ?><a class="button button-light" href="<?= e(url('personnes', $filters + ['page' => $page - 1])) ?>"><?= icon('backward', 16) ?> Précédente</a><?php endif ?>
             <span>Page <?= e($page) ?> sur <?= e($pages) ?></span>
-            <?php if ($page < $pages): ?><a class="button button-light" href="<?= e(url('personnes', $filters + ['page' => $page + 1])) ?>">Suivante</a><?php endif ?>
+            <?php if ($page < $pages): ?><a class="button button-light" href="<?= e(url('personnes', $filters + ['page' => $page + 1])) ?>">Suivante <?= icon('forward', 16) ?></a><?php endif ?>
         </nav>
     <?php endif ?>
 </section>

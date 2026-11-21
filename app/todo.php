@@ -6,7 +6,6 @@ const PERSON_TASK_LABELS = [
     'first_name' => 'Prénom', 'last_name' => 'Nom de famille', 'sex' => 'Sexe', 'residence' => 'Lieu de vie',
     'birth_date' => 'Date de naissance', 'birth_place' => 'Lieu de naissance',
     'death_date' => 'Date de décès', 'death_place' => 'Lieu de décès',
-    'biography' => 'Biographie', 'notable_facts' => 'Faits notables',
     'relations' => 'Relier cette personne à l’arbre',
 ];
 
@@ -30,10 +29,6 @@ function sync_person_tasks(PDO $db, array $person): int
         }
         $applicable = $person['deceased'] || !in_array($field, ['death_date', 'death_place'], true);
         $value = $person[$field] ?? '';
-        if (in_array($field, ['biography', 'notable_facts'], true)) {
-            // L'éditeur riche peut envoyer des balises ou des espaces insécables pour un texte vide.
-            $value = html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        }
         $missing = $applicable && preg_match('/[^\s\p{Z}\x{200b}]/u', $value) !== 1;
         $added += sync_person_task($db, $person['id'], $field, $missing);
     }
@@ -71,13 +66,16 @@ function scan_person_tasks(PDO $db): array
 function pending_person_tasks(PDO $db): array
 {
     $rows = $db->query(<<<'SQL'
-        SELECT p.id, p.first_name, p.last_name, t.field
+        SELECT p.id, p.first_name, p.last_name, p.sex, p.birth_date, p.death_date, t.field
         FROM person_tasks t JOIN people p ON p.id = t.person_id
         WHERE t.ignored = 0 ORDER BY p.last_name COLLATE NOCASE, p.first_name COLLATE NOCASE, p.id, t.rowid
         SQL);
     $people = [];
     foreach ($rows as $row) {
-        $people[$row['id']] ??= ['id' => $row['id'], 'name' => full_name($row), 'fields' => []];
+        $people[$row['id']] ??= [
+            'id' => $row['id'], 'name' => full_name($row), 'sex' => $row['sex'],
+            'birth_date' => $row['birth_date'], 'death_date' => $row['death_date'], 'fields' => [],
+        ];
         $people[$row['id']]['fields'][] = $row['field'];
     }
     return $people;

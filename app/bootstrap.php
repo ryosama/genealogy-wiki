@@ -7,7 +7,7 @@ define('PROJECT_ROOT', dirname(__DIR__));
 define('MEDIA_LIMIT', 12 * 1024 * 1024);
 define('PHOTO_UPLOAD_LIMIT', 10 * 1024 * 1024);
 // Version du schéma complet déclaré dans app/schema.sql.
-define('SCHEMA_VERSION', 6);
+define('SCHEMA_VERSION', 7);
 
 require_once __DIR__ . '/config.php';
 $config = load_config(PROJECT_ROOT);
@@ -131,7 +131,7 @@ function db(): PDO
     $connection->exec('PRAGMA busy_timeout = 5000');
     $connection->exec('PRAGMA foreign_keys = ON');
     $version = (int) $connection->query('PRAGMA user_version')->fetchColumn();
-    if (in_array($version, [0, 3, 4, 5], true)) {
+    if (in_array($version, [0, 3, 4, 5, 6], true)) {
         $version = write_transaction($connection, static function (PDO $db): int {
             // Une autre requête a pu initialiser la base pendant l'attente du verrou.
             $version = (int) $db->query('PRAGMA user_version')->fetchColumn();
@@ -148,6 +148,10 @@ function db(): PDO
             }
             if ($version === 5) {
                 $db->exec(file_get_contents(PROJECT_ROOT . '/app/migrations/006_person_tasks.sql'));
+                $version = 6;
+            }
+            if ($version === 6) {
+                $db->exec(file_get_contents(PROJECT_ROOT . '/app/migrations/007_remove_text_tasks.sql'));
             }
             return (int) $db->query('PRAGMA user_version')->fetchColumn();
         });

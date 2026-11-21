@@ -347,7 +347,13 @@ h3 { font-size: 1.23rem; }
 
 .edit-page { max-width: 880px; }
 .todo-people { display: grid; gap: 15px; }
-.todo-person h2 { font-size: 1.35rem; }
+.todo-person { background: var(--person-fill, var(--white)); border-color: var(--person-outline, var(--line)); }
+.todo-person-heading { margin-bottom: 10px; }
+.todo-person-heading h2 { margin-bottom: 0; font-size: 1.35rem; }
+.todo-person-heading h2 a { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+.todo-person-heading h2 a span:last-child { overflow-wrap: anywhere; }
+.todo-person-heading .sex-icon svg { color: inherit; }
+.todo-person-dates { display: flex; flex-wrap: wrap; gap: 2px 12px; color: var(--muted); font-size: .87rem; margin-top: 5px; }
 .todo-fields { list-style: none; padding: 0; margin: 0; }
 .todo-fields li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 0; }
 .todo-fields li + li { border-top: 1px solid var(--line); }
@@ -510,8 +516,8 @@ h3 { font-size: 1.23rem; }
 .graph-surface { min-width: max-content; cursor: grab; }
 .family-svg { display: block; margin-inline: auto; overflow: hidden; user-select: none; }
 .graph-surface.is-dragging, .is-dragging .tree-node { cursor: grabbing; }
-/* Palette commune aux cartes et à l'activité. La personne centrale de l'arbre a une teinte plus soutenue. */
-.tree-node-female, .person-card-female, .activity-row-female {
+/* Palette commune à l'arbre, aux cartes, à l'activité et aux tâches. La personne centrale a une teinte plus soutenue. */
+.tree-node-female, .person-card-female, .activity-row-female, .todo-person-female {
     --person-fill: #fff2f6;
     --person-outline: #bd879f;
     --person-avatar: #f4dbe6;
@@ -519,7 +525,7 @@ h3 { font-size: 1.23rem; }
     --node-centre: #f7dfeb;
     --node-emphasis: #965573;
 }
-.tree-node-male, .person-card-male, .activity-row-male {
+.tree-node-male, .person-card-male, .activity-row-male, .todo-person-male {
     --person-fill: #eef5fc;
     --person-outline: #86a3bf;
     --person-avatar: #d9e9f8;

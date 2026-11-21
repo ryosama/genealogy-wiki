@@ -27,7 +27,7 @@ $saveLabel = $person ? 'Enregistrer les modifications' : 'Créer la fiche';
                     <?php endif ?>
                 </p>
             <?php else: ?>
-                <p>Les champs laissés vides seront ajoutés à la liste « À renseigner ultérieurement ».</p>
+                <p>Les informations personnelles manquantes seront ajoutées à « À renseigner ultérieurement ».</p>
             <?php endif ?>
         </div>
         <div class="actions profile-actions">

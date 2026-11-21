@@ -7,9 +7,25 @@
         <div class="todo-people">
             <?php // Les champs à compléter et l'éventuelle absence de lien sont regroupés par fiche.
             foreach ($tasks as $person): ?>
-                <?php $profile = url('personne', ['id' => $person['id']]); ?>
-                <section class="panel content-panel todo-person">
-                    <h2><a href="<?= e($profile) ?>"><?= e($person['name']) ?></a></h2>
+                <?php
+                $profile = url('personne', ['id' => $person['id']]);
+                // Afficher les libellés saisis, qui peuvent contenir un jour précis ou une approximation.
+                $dates = [];
+                foreach (['birth_date' => 'Naissance', 'death_date' => 'Décès'] as $field => $label) {
+                    if ($person[$field] !== '') {
+                        $dates[] = $label . ' ' . $person[$field];
+                    }
+                }
+                ?>
+                <section class="panel content-panel todo-person<?= $person['sex'] ? ' todo-person-' . e($person['sex']) : '' ?>">
+                    <header class="todo-person-heading">
+                        <h2><a href="<?= e($profile) ?>"><?= sex_icon($person['sex']) ?><span><?= e($person['name']) ?></span></a></h2>
+                        <?php if ($dates): ?>
+                            <p class="todo-person-dates">
+                                <?php foreach ($dates as $date): ?><span><?= e($date) ?></span><?php endforeach ?>
+                            </p>
+                        <?php endif ?>
+                    </header>
                     <ul class="todo-fields">
                         <?php foreach ($person['fields'] as $field): ?>
                             <li>

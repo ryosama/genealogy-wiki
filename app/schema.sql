@@ -110,4 +110,4 @@ CREATE TABLE auth_limits (
 );
 
 -- Version du schéma vérifiée au démarrage de l'application.
-PRAGMA user_version = 6;
+PRAGMA user_version = 7;

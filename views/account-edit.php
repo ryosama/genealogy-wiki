@@ -14,7 +14,7 @@
                     <input name="first_name" value="<?= e($values['first_name']) ?>" maxlength="100" required>
                 </label>
                 <label>Nom
-                    <input name="last_name" value="<?= e($values['last_name']) ?>" maxlength="100" required>
+                    <input name="last_name" value="<?= e(family_name($values['last_name'])) ?>" maxlength="100" required>
                 </label>
             </div>
             <label>Adresse e-mail

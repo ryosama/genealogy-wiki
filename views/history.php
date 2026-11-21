@@ -20,6 +20,7 @@
                                 <?php foreach (array_intersect_key($details, history_labels()) as $key => $value): ?>
                                     <?php $display = match (true) {
                                         !is_string($value) || trim($value) === '' => 'Non renseigné',
+                                        $key === 'last_name' => family_name($value),
                                         $key === 'sex' => SEX_LABELS[$value] ?? 'Non renseigné',
                                         in_array($key, ['biography', 'notable_facts'], true) => html_entity_decode(strip_tags($value), ENT_QUOTES, 'UTF-8'),
                                         default => $value,

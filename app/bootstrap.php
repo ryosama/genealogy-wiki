@@ -56,9 +56,15 @@ function id_value(mixed $value): int
     return is_scalar($value) ? (filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 0) : 0;
 }
 
+function family_name(string $name): string
+{
+    // Garder les accents lors de la mise en majuscules, y compris pour les noms déjà en base.
+    return mb_strtoupper($name, 'UTF-8');
+}
+
 function full_name(array $entity): string
 {
-    return $entity['first_name'] . ' ' . $entity['last_name'];
+    return $entity['first_name'] . ' ' . family_name($entity['last_name']);
 }
 
 function required_text(array $source, string $key, string $label, int $length): string

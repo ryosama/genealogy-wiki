@@ -8,6 +8,7 @@
     <title><?= e($title) ?> · Racines</title>
     <link rel="stylesheet" href="<?= e(asset('style.css')) ?>">
     <script src="<?= e(asset('site.js')) ?>" defer></script>
+    <?php if ($route === '' || $route === 'personnes'): ?><script src="<?= e(asset('search.js')) ?>" defer></script><?php endif ?>
     <?php // Le module de dessin n'est chargé que si la page fournit les données d'un arbre. ?>
     <?php if (isset($graph)): ?><script src="<?= e(asset('tree.js')) ?>" type="module"></script><?php endif ?>
     <?php if ($route === 'medaillon'): ?><script src="<?= e(asset('portrait.js')) ?>" defer></script><?php endif ?>

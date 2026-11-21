@@ -34,7 +34,13 @@ function photo_subquery(string $personAlias): string
     return "(SELECT id FROM media WHERE kind = 'photo' AND person_id = $personAlias.id ORDER BY id LIMIT 1)";
 }
 
-function search_people(PDO $db, array $filters, int $page): array
+function people_search_inputs(array $source): array
+{
+    return ['name' => input($source, 'name'), 'year' => input($source, 'year'), 'when' => input($source, 'when')];
+}
+
+// L'annuaire et les suggestions partagent la recherche par mots et les filtres de dates.
+function people_search_filter(array $filters): array
 {
     // Tous les mots doivent être présents dans le nom normalisé, dans n'importe quel ordre.
     $terms = preg_split('/\s+/', normalized_name(mb_substr($filters['name'], 0, 150)), -1, PREG_SPLIT_NO_EMPTY);
@@ -59,7 +65,12 @@ function search_people(PDO $db, array $filters, int $page): array
             $params[] = $year;
         }
     }
-    $filter = $where ? ' WHERE ' . implode(' AND ', $where) : '';
+    return [$where ? ' WHERE ' . implode(' AND ', $where) : '', $params];
+}
+
+function search_people(PDO $db, array $filters, int $page): array
+{
+    [$filter, $params] = people_search_filter($filters);
     $total = (int) query($db, 'SELECT COUNT(*) FROM people p' . $filter, $params)->fetchColumn();
     $perPage = 24;
     $page = min($page, max(1, (int) ceil($total / $perPage)));
@@ -68,6 +79,21 @@ function search_people(PDO $db, array $filters, int $page): array
         . " ORDER BY p.last_name COLLATE NOCASE, p.first_name COLLATE NOCASE, p.id LIMIT $perPage OFFSET $offset";
     return ['people' => query($db, $statement, $params)->fetchAll(), 'total' => $total,
         'page' => $page, 'pages' => (int) ceil($total / $perPage)];
+}
+
+function suggest_people(PDO $db, array $filters): array
+{
+    $name = mb_substr($filters['name'], 0, 150);
+    // Un texte composé uniquement de signes ou d'espaces ne doit pas lister des fiches au hasard.
+    if (mb_strlen($name) < 3 || normalized_name($name) === '') {
+        return [];
+    }
+    [$filter, $params] = people_search_filter($filters);
+    $people = query($db, 'SELECT p.id,p.first_name,p.last_name,p.sex,p.birth_date,p.birth_year,p.death_date,p.death_year FROM people p'
+        . $filter . ' ORDER BY p.search_name, p.id LIMIT 5', $params)->fetchAll();
+    return array_map(static fn (array $person): array => [
+        'name' => full_name($person), 'dates' => lifespan($person), 'url' => url('personne', ['id' => $person['id']]),
+    ], $people);
 }
 
 function stats(PDO $db): array
@@ -107,6 +133,7 @@ function record_change(PDO $db, array $person, string $editor, string $action, ?
 // Appelée sous transaction, seule ou avec les relations de la nouvelle fiche.
 function insert_person(PDO $db, array $fields, string $editor): int
 {
+    assert_lifespan_order($fields);
     $columns = implode(', ', array_keys($fields));
     $values = ':' . implode(', :', array_keys($fields));
     query($db, "INSERT INTO people ($columns) VALUES ($values)", $fields);
@@ -125,9 +152,18 @@ function save_person(PDO $db, int $id, array $fields, string $editor): int
         // Un enregistrement identique ne produit aucune entrée. Un vrai changement conserve l'ancienne valeur.
         $changes = array_filter($fields, static fn ($value, $key) => $value !== $original[$key], ARRAY_FILTER_USE_BOTH);
         if ($changes) {
+            // Valider les dates sous le même verrou que l'écriture et la lecture des filiations.
+            $person = $fields + ['id' => $id];
+            $datesChanged = isset($changes['birth_date']) || isset($changes['death_date']);
+            if ($datesChanged) {
+                assert_lifespan_order($person);
+            }
+            if ($datesChanged || array_key_exists('sex', $changes)) {
+                assert_person_filiations($db, $person);
+            }
             $assignments = array_map(static fn ($key) => "$key = :$key", array_keys($changes));
             query($db, 'UPDATE people SET ' . implode(', ', $assignments) . ' WHERE id = :id', $changes + ['id' => $id]);
-            record_change($db, $fields + ['id' => $id], $editor, 'edited', array_intersect_key($original, $changes));
+            record_change($db, $person, $editor, 'edited', array_intersect_key($original, $changes));
         }
         return $id;
     });
@@ -136,6 +172,49 @@ function save_person(PDO $db, int $id, array $fields, string $editor): int
 function is_parent_kind(string $kind): bool
 {
     return in_array($kind, ['biological', 'adoptive'], true);
+}
+
+function filiation_date_error(array $parent, array $child, string $kind): ?string
+{
+    if (!is_parent_kind($kind)) {
+        return null;
+    }
+    [$earliestChildBirth, $latestChildBirth] = date_bounds($child['birth_date']);
+    [$earliestParentBirth] = date_bounds($parent['birth_date']);
+    if ($latestChildBirth !== null && $earliestParentBirth !== null && $latestChildBirth < $earliestParentBirth) {
+        return 'La naissance de ' . full_name($child) . ' ne peut pas précéder celle de son parent ' . full_name($parent) . '.';
+    }
+
+    // Le décès concerne la mère biologique. Une adoption ne fixe pas les circonstances de la naissance.
+    if ($kind === 'biological' && $parent['sex'] === 'female') {
+        [, $latestMotherDeath] = date_bounds($parent['death_date']);
+        if ($earliestChildBirth !== null && $latestMotherDeath !== null && $earliestChildBirth > $latestMotherDeath) {
+            return 'La naissance de ' . full_name($child) . ' ne peut pas être postérieure au décès de sa mère biologique ' . full_name($parent) . '.';
+        }
+    }
+    return null;
+}
+
+function assert_filiation_dates(array $parent, array $child, string $kind): void
+{
+    $error = filiation_date_error($parent, $child, $kind);
+    if ($error !== null) {
+        throw new InputException($error);
+    }
+}
+
+function assert_person_filiations(PDO $db, array $person): void
+{
+    // Une fiche peut être modifiée des deux côtés d'une filiation. Comparer ses nouvelles dates à chaque proche.
+    $links = query($db, <<<'SQL'
+        SELECT p.*, r.a_id AS parent_id, r.kind FROM relations r
+        JOIN people p ON p.id = CASE WHEN r.a_id = :id THEN r.b_id ELSE r.a_id END
+        WHERE (r.a_id = :id OR r.b_id = :id) AND r.kind IN ('biological','adoptive')
+        SQL, ['id' => $person['id']]);
+    foreach ($links as $relative) {
+        [$parent, $child] = $relative['parent_id'] === $person['id'] ? [$person, $relative] : [$relative, $person];
+        assert_filiation_dates($parent, $child, $relative['kind']);
+    }
 }
 
 function relation_fields(int $a, int $b, string $kind, ?int $endYear): array
@@ -236,8 +315,13 @@ function add_partner_filiation(PDO $db, array $relation, array $child, string $e
     if ($existing || parent_graph_has_cycle($db, $otherLink)) {
         return;
     }
+    // Un lien proposé automatiquement peut être ignoré lorsque ses dates contredisent la filiation.
+    $partner = find_person($db, $partnerId);
+    if (filiation_date_error($partner, $child, $relation['kind']) !== null) {
+        return;
+    }
     insert_relation($db, $otherLink);
-    log_relation($db, [$partnerId => find_person($db, $partnerId), $child['id'] => $child], $otherLink, $editor, 'linked');
+    log_relation($db, [$partnerId => $partner, $child['id'] => $child], $otherLink, $editor, 'linked');
 }
 
 function save_relation(PDO $db, int $id, array $relation, string $editor): int
@@ -252,11 +336,15 @@ function save_relation(PDO $db, int $id, array $relation, string $editor): int
             throw new InputException('Cette relation existe déjà.');
         }
         assert_parent_graph($db, $relation, $id);
+        if ($old && array_intersect_key($old, $relation) == $relation) {
+            return $id;
+        }
+        assert_filiation_dates($people[$relation['a_id']], $people[$relation['b_id']], $relation['kind']);
         if (!$id) {
             $id = insert_relation($db, $relation);
             log_relation($db, $people, $relation, $editor, 'linked');
             add_partner_filiation($db, $relation, $people[$relation['b_id']], $editor);
-        } elseif (array_intersect_key($old, $relation) != $relation) {
+        } else {
             query($db, 'UPDATE relations SET a_id = :a_id, b_id = :b_id, kind = :kind, end_year = :end_year WHERE id = :id',
                 $relation + ['id' => $id]);
             log_relation($db, $people, $relation, $editor, 'relinked', $old);
@@ -327,7 +415,7 @@ function graph_data(PDO $db): array
     foreach ($people as &$person) {
         $person = ['id' => $person['id'], 'name' => full_name($person), 'dates' => lifespan($person), 'year' => $person['birth_year'],
             'initials' => initials($person), 'search' => normalized_name(full_name($person)),
-            'sex' => $person['sex'], 'lastName' => $person['last_name'],
+            'sex' => $person['sex'], 'lastName' => family_name($person['last_name']),
             'portrait' => $person['portrait_id'] ? url('portrait', ['id' => $person['portrait_id']]) : null];
     }
     unset($person);
@@ -398,6 +486,10 @@ function merge_people(PDO $db, int $keepId, int $removeId, string $editor): void
         if ($assignments) {
             query($db, 'UPDATE people SET ' . implode(', ', $assignments) . ' WHERE id = :id', $fill + ['id' => $keepId]);
         }
+        // Vérifier la combinaison finale des dates et des liens avant de supprimer le doublon.
+        $merged = $fill + $keep;
+        assert_lifespan_order($merged);
+        assert_person_filiations($db, $merged);
         // Réattribuer les fichiers et les modifications avant la suppression en cascade de l'ancienne fiche.
         query($db, 'UPDATE media SET person_id = ? WHERE person_id = ?', [$keepId, $removeId]);
         // Récupérer le médaillon du doublon si la fiche conservée n'en utilise pas déjà un.

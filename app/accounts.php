@@ -77,7 +77,7 @@ function account_identity(array $form): array
 {
     return [
         'first_name' => required_text($form, 'first_name', 'Le prénom', 100),
-        'last_name' => required_text($form, 'last_name', 'Le nom', 100),
+        'last_name' => family_name(required_text($form, 'last_name', 'Le nom', 100)),
         'email' => valid_email(input($form, 'email')),
     ];
 }

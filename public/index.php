@@ -50,6 +50,14 @@ try {
     if (in_array($route, ['media', 'portrait'], true) && in_array($_SERVER['REQUEST_METHOD'], ['GET', 'HEAD'], true)) {
         serve_media($db, $id, $route === 'portrait');
     }
+    // La recherche publique renvoie seulement les informations nécessaires à la liste de suggestions.
+    if ($route === 'suggestions' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        $suggestions = suggest_people($db, people_search_inputs($_GET));
+        header('Content-Type: application/json; charset=UTF-8');
+        header('Cache-Control: no-store');
+        echo json_data($suggestions);
+        exit;
+    }
     session_save_path(private_directory($config['data_dir'] . '/sessions'));
     if (!session_start()) {
         throw new RuntimeException('La session PHP est indisponible.');

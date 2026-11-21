@@ -36,7 +36,7 @@ try {
     } elseif ($command === 'admin' && $argc === 5) {
         $form = ['first_name' => $argv[2], 'last_name' => $argv[3]];
         $firstName = required_text($form, 'first_name', 'Le prénom', 100);
-        $lastName = required_text($form, 'last_name', 'Le nom', 100);
+        $lastName = family_name(required_text($form, 'last_name', 'Le nom', 100));
         $email = valid_email($argv[4]);
         if (query(db(), 'SELECT 1 FROM users WHERE email = ?', [$email])->fetchColumn()) {
             throw new InputException('Cette adresse est déjà utilisée par un compte.');

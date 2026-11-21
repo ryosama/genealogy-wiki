@@ -11,8 +11,9 @@ if ($canEdit): ?>
         <div class="profile-field-editor">
             <div class="stacked-form form-grid">
                 <?php foreach (['first_name' => 'Prénom', 'last_name' => 'Nom'] as $key => $label): ?>
+                    <?php $value = $values[$key] ?? ''; ?>
                     <label><?= e($label) ?>
-                        <input name="<?= e($key) ?>" value="<?= e($values[$key] ?? '') ?>" maxlength="100" required>
+                        <input name="<?= e($key) ?>" value="<?= e($key === 'last_name' ? family_name($value) : $value) ?>" maxlength="100" required>
                     </label>
                 <?php endforeach ?>
                 <label>Sexe

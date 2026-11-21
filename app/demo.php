@@ -124,7 +124,7 @@ function seed_demo(PDO $db): void
                 'death_place' => $index % 5 === 0 && $death ? 'Val-des-Ormes' : '',
                 'biography' => $biography, 'notable_facts' => $facts,
             ];
-            $ids[$index + 1] = insert_person($db, person_fields($source), 'Nora Exemple');
+            $ids[$index + 1] = insert_person($db, person_fields($source), 'Nora EXEMPLE');
         }
 
         foreach ($unions as $union) {
@@ -143,10 +143,10 @@ function seed_demo(PDO $db): void
             insert_media($db, $ids[$id], 'photo', $title . ' · archive fictive', 'image/webp', $bytes);
         }
         insert_media($db, $ids[9], 'document', 'Archive fictive', 'application/pdf', demo_document());
-        // Les entrées de démonstration illustrent l'activité de plusieurs éditeurs sur l'accueil.
+        // Les entrées de démonstration illustrent l'activité de plusieurs auteurs sur l'accueil.
         foreach ([5, 14, 15, 12, 10, 9] as $personId) {
             $person = find_person($db, $ids[$personId]);
-            record_change($db, $person, $personId % 2 ? 'Nora Exemple' : 'Hugo Démo', 'edited');
+            record_change($db, $person, $personId % 2 ? 'Nora EXEMPLE' : 'Hugo DÉMO', 'edited');
         }
     });
 }

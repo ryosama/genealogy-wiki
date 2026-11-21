@@ -25,7 +25,7 @@
                         <input name="first_name" autocomplete="given-name" maxlength="100" value="<?= e(input($_POST, 'first_name')) ?>" required>
                     </label>
                     <label>Nom
-                        <input name="last_name" autocomplete="family-name" maxlength="100" value="<?= e(input($_POST, 'last_name')) ?>" required>
+                        <input name="last_name" autocomplete="family-name" maxlength="100" value="<?= e(family_name(input($_POST, 'last_name'))) ?>" required>
                     </label>
                 </div>
                 <label>Adresse e-mail

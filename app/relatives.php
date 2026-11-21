@@ -80,6 +80,7 @@ function create_relative(PDO $db, int $referenceId, string $presetId, array $sou
 function link_new_relative(PDO $db, array $first, array $second, string $kind, string $editor): array
 {
     $relation = relation_fields($first['id'], $second['id'], $kind, null);
+    assert_filiation_dates($first, $second, $kind);
     insert_relation($db, $relation);
     log_relation($db, [$first['id'] => $first, $second['id'] => $second], $relation, $editor, 'linked');
     return $relation;

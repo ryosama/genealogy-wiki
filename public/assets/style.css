@@ -44,6 +44,7 @@ input, select, textarea {
     color: var(--ink);
 }
 input::placeholder { color: #6e746a; opacity: 1; }
+input[name="last_name"] { text-transform: uppercase; }
 input[type="file"] { padding: .48rem; font-size: .88rem; }
 textarea { resize: vertical; }
 img { display: block; max-width: 100%; }
@@ -130,7 +131,7 @@ h3 { font-size: 1.23rem; }
 .error-panel { padding: 35px; }
 .error-panel p { margin-block: 14px 20px; }
 
-.hero { position: relative; overflow: hidden; background: #26372b; color: #fffdf3; }
+.hero { position: relative; background: #26372b; color: #fffdf3; }
 /* Le dégradé raccorde l'illustration au fond et préserve la lisibilité du texte. */
 .hero::before {
     content: '';
@@ -150,6 +151,25 @@ h3 { font-size: 1.23rem; }
 .search-field { display: block; min-width: 0; color: #3b483b; font-size: .875rem; font-weight: 660; }
 .search-field > span:first-child { display: block; margin-bottom: .28rem; }
 .search-field input, .search-field select { font-size: .92rem; font-weight: 450; min-width: 0; }
+.search-name { position: relative; min-width: 0; }
+.search-suggestions {
+    position: absolute;
+    z-index: 3;
+    inset: calc(100% + 4px) 0 auto;
+    max-height: min(52vh, 315px);
+    overflow-y: auto;
+    list-style: none;
+    margin: 0;
+    padding: 4px;
+    color: var(--ink);
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 8px 20px #253b2826;
+}
+.search-suggestions li { display: grid; padding: .42rem .6rem; border-radius: 5px; font-size: .9rem; overflow-wrap: anywhere; cursor: pointer; }
+.search-suggestions li:hover, .search-suggestions li[aria-selected="true"] { background: var(--pale); }
+.search-suggestions small { color: var(--muted); }
 .search-hero { width: min(100%, 665px); color: var(--ink); background: #fffefa; border: 1px solid #ffffffaa; border-radius: 12px; padding: 12px; margin-top: 28px; box-shadow: 0 12px 25px #10171134; }
 .input-with-icon { position: relative; display: block; }
 .input-with-icon svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #5c6f5d; pointer-events: none; }

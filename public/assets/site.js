@@ -1,5 +1,23 @@
 'use strict';
 
+document.querySelectorAll('input[name="last_name"]').forEach(field => {
+    function capitalize() {
+        const original = field.value;
+        const uppercase = original.toUpperCase();
+        if (original === uppercase) return;
+        // Garder le curseur au même endroit, même lorsqu'une lettre devient plusieurs caractères.
+        const start = original.slice(0, field.selectionStart).toUpperCase().length;
+        const end = original.slice(0, field.selectionEnd).toUpperCase().length;
+        const direction = field.selectionDirection;
+        field.value = uppercase;
+        field.setSelectionRange(start, end, direction);
+    }
+    field.addEventListener('input', event => {
+        if (!event.isComposing) capitalize();
+    });
+    field.addEventListener('compositionend', capitalize);
+});
+
 // Les fiches utilisent l'impression native. L'arbre prépare son propre SVG dans tree.js.
 document.querySelectorAll('[data-print]').forEach(button => {
     button.addEventListener('click', () => window.print());

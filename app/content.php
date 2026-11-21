@@ -36,6 +36,39 @@ function parse_date(string $value): array
     return [trim($prefix . ' ' . sprintf('%02d/%02d/%04d', $day, $month, $year)), (int) $year];
 }
 
+// Le libellé vient de parse_date(). Les bornes sont inclusives et null désigne une borne inconnue.
+function date_bounds(string $label): array
+{
+    // Une date « vers » n'indique aucune marge précise pour conclure à une contradiction.
+    if ($label === '' || str_starts_with($label, 'vers ')) {
+        return [null, null];
+    }
+    [$prefix, $date] = str_contains($label, ' ') ? explode(' ', $label, 2) : ['', $label];
+    if (str_contains($date, '/')) {
+        $first = $last = DateTimeImmutable::createFromFormat('!d/m/Y', $date);
+    } else {
+        $year = sprintf('%04d', (int) $date);
+        $first = new DateTimeImmutable($year . '-01-01');
+        $last = new DateTimeImmutable($year . '-12-31');
+    }
+
+    // « Avant » et « après » excluent le jour ou l'année qui leur sert de repère.
+    return match ($prefix) {
+        'avant' => [null, $first->modify('-1 day')],
+        'après' => [$last->modify('+1 day'), null],
+        default => [$first, $last],
+    };
+}
+
+function assert_lifespan_order(array $person): void
+{
+    [$earliestBirth] = date_bounds($person['birth_date']);
+    [, $latestDeath] = date_bounds($person['death_date']);
+    if ($earliestBirth !== null && $latestDeath !== null && $earliestBirth >= $latestDeath) {
+        throw new InputException('La naissance doit être antérieure au décès de ' . full_name($person) . '.');
+    }
+}
+
 function normalized_name(string $value): string
 {
     // Appliquer le même traitement à la saisie et au nom indexé. Les espaces séparent les mots.
@@ -109,7 +142,7 @@ function person_fields(array $source): array
     // Construire les colonnes autorisées avant de préparer l'écriture SQL.
     $fields = [
         'first_name' => required_text($source, 'first_name', 'Le prénom', 100),
-        'last_name' => required_text($source, 'last_name', 'Le nom', 100),
+        'last_name' => family_name(required_text($source, 'last_name', 'Le nom', 100)),
         'sex' => $sex === '' ? null : $sex,
         'birth_place' => short_text($source, 'birth_place', 180),
         'death_place' => short_text($source, 'death_place', 180),
@@ -135,8 +168,13 @@ function lifespan(array $person): string
     }
     $birthLabel = ($birthApproximate ? '≈ ' : '') . $birth;
     $deathLabel = ($deathApproximate ? '≈ ' : '') . $death;
+    $birthPrefix = match ($person['sex'] ?? null) {
+        'male' => 'Né en ',
+        'female' => 'Née en ',
+        default => 'Naissance en ',
+    };
     return match (true) {
-        !$death => 'Né·e en ' . $birthLabel,
+        !$death => $birthPrefix . $birthLabel,
         !$birth => 'Décès en ' . $deathLabel,
         default => $birthLabel . ' – ' . $deathLabel,
     };

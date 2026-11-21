@@ -11,7 +11,7 @@ function page_data(PDO $db, string $route, int $id, ?array $user, array $common)
             ]];
 
         case 'personnes':
-            $filters = ['name' => input($_GET, 'name'), 'year' => input($_GET, 'year'), 'when' => input($_GET, 'when')];
+            $filters = people_search_inputs($_GET);
             try {
                 $results = search_people($db, $filters, max(1, id_value($_GET['page'] ?? null)));
             } catch (InputException $error) {
@@ -133,7 +133,7 @@ function attempted_relative(array $common): ?array
     }
     return [
         'id' => id_value($_POST['reference_id'] ?? null), 'preset' => input($_POST, 'preset'),
-        'firstName' => input($_POST, 'first_name'), 'lastName' => input($_POST, 'last_name'), 'error' => $common['error'],
+        'firstName' => input($_POST, 'first_name'), 'lastName' => family_name(input($_POST, 'last_name')), 'error' => $common['error'],
         'sex' => array_key_exists('sex', $_POST) ? input($_POST, 'sex') : null,
     ];
 }

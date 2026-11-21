@@ -1,11 +1,16 @@
-<form action="./" method="get" class="search-form <?= ($heroSearch ?? false) ? 'search-hero' : '' ?>" role="search">
+<form action="./" method="get" class="search-form <?= ($heroSearch ?? false) ? 'search-hero' : '' ?>" role="search"
+    data-people-search="<?= e(url('suggestions')) ?>">
     <input type="hidden" name="view" value="personnes">
-    <label class="search-field search-name">
-        <span>Nom ou prénom</span>
-        <span class="input-with-icon"><?= icon('search', 19) ?>
-            <input type="search" name="name" maxlength="150" placeholder="Ex. Camille Varenne" value="<?= e($filters['name'] ?? '') ?>">
-        </span>
-    </label>
+    <div class="search-name">
+        <label class="search-field">
+            <span>Nom ou prénom</span>
+            <span class="input-with-icon"><?= icon('search', 19) ?>
+                <input type="search" name="name" maxlength="150" placeholder="Ex. Camille VARENNE" value="<?= e($filters['name'] ?? '') ?>"
+                    autocomplete="off">
+            </span>
+        </label>
+        <ul id="people-suggestions" class="search-suggestions" role="listbox" aria-label="Suggestions de personnes" hidden></ul>
+    </div>
     <label class="search-field search-year">
         <span>Année</span>
         <span class="input-with-icon"><?= icon('calendar', 18) ?>
